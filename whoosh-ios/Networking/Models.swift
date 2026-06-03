@@ -304,3 +304,70 @@ struct UserWager: Decodable, Sendable, Identifiable {
 }
 
 struct PlaceWagerBody: Encodable { let eventId: Int; let outcomeId: Int; let stake: Double }
+
+// MARK: - News
+
+struct Article: Decodable, Sendable, Identifiable {
+    let title: String
+    let description: String
+    let link: String
+    let pubDate: String?
+    let author: String?
+    let guid: String
+    let images: [String]
+    var id: String { guid }
+    var imageUrl: String? { images.first }
+}
+
+struct WhooshEntry: Decodable, Sendable, Identifiable {
+    let espnId: String
+    let sport: String
+    let title: String
+    let description: String?
+    let link: String
+    let author: String?
+    let imageUrl: String?
+    let pubDate: String?
+    let points: Int
+    var id: String { espnId }
+}
+
+/// GET /api/v1/news/feed — `mode` discriminates whoosh-feed vs sport deck.
+struct NewsFeed: Decodable, Sendable {
+    let mode: String                 // "whoosh" | "sport"
+    let entries: [WhooshEntry]?      // whoosh
+    let sport: String?               // sport
+    let articles: [Article]?         // sport
+}
+
+/// POST /api/v1/news/swipe body.
+struct SwipeBody: Encodable {
+    let action: String               // "swipe" | "undo"
+    let sport: String?
+    let direction: String?           // "left" | "right"
+    let guid: String?
+    let article: ArticlePayload?
+    struct ArticlePayload: Encodable {
+        let guid: String; let title: String; let description: String
+        let link: String; let author: String?; let image: String?; let pubDate: String?
+    }
+}
+
+/// The catalog of sports for the swipe-deck picker (mirrors the web SPORTS).
+struct NewsSport: Identifiable, Hashable { let key: String; let label: String; var id: String { key } }
+enum NewsCatalog {
+    static let sports: [NewsSport] = [
+        .init(key: "nfl", label: "NFL"),
+        .init(key: "nba", label: "NBA"),
+        .init(key: "mlb", label: "MLB"),
+        .init(key: "nhl", label: "NHL"),
+        .init(key: "ncf", label: "CFB"),
+        .init(key: "ncb", label: "CBB"),
+        .init(key: "soccer", label: "Soccer"),
+        .init(key: "golf", label: "Golf"),
+        .init(key: "tennis", label: "Tennis"),
+        .init(key: "mma", label: "UFC/MMA"),
+        .init(key: "boxing", label: "Boxing"),
+        .init(key: "racing", label: "Racing"),
+    ]
+}

@@ -108,6 +108,34 @@ actor WhooshAPI {
         return r.wagerId
     }
 
+    // News
+    /// `sport` nil → Whoosh community feed; `view == "mine"` → the user's keeps;
+    /// `sport` set → that sport's swipeable article feed.
+    func newsFeed(sport: String? = nil, mine: Bool = false) async throws -> NewsFeed {
+        var path = "/api/v1/news/feed"
+        if let sport { path += "?sport=\(sport)" }
+        else if mine { path += "?view=mine" }
+        return try await get(path)
+    }
+    @discardableResult
+    func swipe(sport: String, direction: String, article: Article) async throws -> Int {
+        struct R: Decodable { let points: Int }
+        let body = SwipeBody(action: "swipe", sport: sport, direction: direction, guid: nil,
+                             article: .init(guid: article.guid, title: article.title,
+                                            description: article.description, link: article.link,
+                                            author: article.author, image: article.imageUrl,
+                                            pubDate: article.pubDate))
+        let r: R = try await post("/api/v1/news/swipe", body: body)
+        return r.points
+    }
+    @discardableResult
+    func undoSwipe(guid: String) async throws -> Int {
+        struct R: Decodable { let points: Int }
+        let body = SwipeBody(action: "undo", sport: nil, direction: nil, guid: guid, article: nil)
+        let r: R = try await post("/api/v1/news/swipe", body: body)
+        return r.points
+    }
+
     func uploadAvatar(imageData: Data, fileName: String = "avatar.jpg",
                       mimeType: String = "image/jpeg") async throws -> AvatarResult {
         var req = await request("POST", "/api/v1/account/avatar")
