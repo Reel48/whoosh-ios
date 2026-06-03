@@ -12,6 +12,8 @@ struct HomeView: View {
         TabView {
             NavigationStack { landing }
                 .tabItem { Label("Home", systemImage: "house.fill") }
+            CapitalView()
+                .tabItem { Label("Capital", systemImage: "bolt.fill") }
             NavigationStack { account }
                 .tabItem { Label("Account", systemImage: "person.crop.circle") }
         }

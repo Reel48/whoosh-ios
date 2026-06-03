@@ -21,6 +21,12 @@ actor WhooshAPI {
 
     func account() async throws -> Account { try await get("/api/v1/account") }
     func home() async throws -> Home { try await get("/api/v1/home") }
+    func wallet() async throws -> Dashboard { try await get("/api/v1/wb/wallet") }
+    func ticker() async throws -> [TickerQuote] {
+        struct R: Decodable { let quotes: [TickerQuote] }
+        let r: R = try await get("/api/v1/capital/ticker")
+        return r.quotes
+    }
 
     func usernameAvailable(_ handle: String) async throws -> UsernameAvailability {
         let q = handle.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""

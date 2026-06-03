@@ -58,3 +58,59 @@ struct TopArticle: Decodable, Sendable {
 }
 
 struct SetUsernameBody: Encodable { let username: String }
+
+// MARK: - Capital (wallet dashboard + ticker)
+
+struct Dashboard: Decodable, Sendable {
+    let allocation: Allocation
+    let returns: Returns
+    let positions: [Position]
+    let balanceSeries: [BalancePoint]
+    let dayChangeCents: Int?
+}
+
+struct Allocation: Decodable, Sendable {
+    let cashCents: Int
+    let investedValueCents: Int
+    let openWagersCents: Int
+    let totalEquityCents: Int
+}
+
+struct Returns: Decodable, Sendable {
+    let totalReturnCents: Int
+    let totalReturnFraction: Double
+}
+
+/// The API's EnrichedPosition (we model the fields the list renders).
+struct Position: Decodable, Sendable, Identifiable {
+    let symbol: String
+    let shares: Double
+    let marketValueCents: Int?
+    let dayChangeCents: Int?
+    var id: String { symbol }
+}
+
+struct BalancePoint: Decodable, Sendable, Identifiable {
+    let day: String            // "yyyy-MM-dd"
+    let balanceCents: Int
+    var id: String { day }
+
+    /// Parsed calendar date for the chart x-axis.
+    var date: Date {
+        BalancePoint.formatter.date(from: day) ?? Date()
+    }
+    private static let formatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f
+    }()
+}
+
+struct TickerQuote: Decodable, Sendable, Identifiable {
+    let symbol: String
+    let name: String
+    let priceCents: Int
+    let changePct: Double
+    var id: String { symbol }
+}
