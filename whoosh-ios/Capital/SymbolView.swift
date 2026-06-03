@@ -1,54 +1,47 @@
 import SwiftUI
+import Charts
 import UIKit
 
-/// Quote + buy/sell + watchlist toggle for a single symbol.
+/// Full stock detail: header (name/price/day change), range-selectable price
+/// chart, key stats, buy/sell, and watchlist toggle — parity with the web invest
+/// page. Backed by GET /api/v1/wb/symbol.
 struct SymbolView: View {
     @EnvironmentObject private var model: AppModel
     let symbol: String
 
-    @State private var quote: Quote?
+    private let ranges = ["1m", "3m", "6m", "1y", "5y"]
+    private let rangeLabels = ["1M", "3M", "6M", "1Y", "5Y"]
+
+    @State private var detail: SymbolDetail?
+    @State private var range = "1y"
     @State private var side = "buy"
     @State private var amountText = ""
     @State private var watched = false
     @State private var busy = false
+    @State private var loading = true
     @State private var message: String?
     @State private var isError = false
 
     private var amount: Double? { Double(amountText) }
+    private var priceCents: Int? { detail?.snapshot.regularMarketPriceCents ?? detail?.quote?.priceCents }
+    private var dayChangeCents: Int? {
+        guard let q = detail?.quote, let prev = q.prevCloseCents else { return nil }
+        return q.priceCents - prev
+    }
 
     var body: some View {
-        Form {
-            Section {
-                HStack {
-                    Text("Price")
-                    Spacer()
-                    if let q = quote {
-                        VStack(alignment: .trailing) {
-                            Text(Money.wb(q.priceCents)).font(.body.bold())
-                            if let day = q.dayChangeCents {
-                                Text(Money.wb(day, signed: true)).font(.caption).foregroundStyle(Money.tint(day))
-                            }
-                        }
-                    } else {
-                        ProgressView()
-                    }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                header
+                chartSection
+                statsSection
+                orderSection
+                if let message {
+                    Text(message).foregroundStyle(isError ? .red : Color.whooshGreen).font(.footnote)
+                        .padding(.horizontal)
                 }
             }
-
-            Section("Order") {
-                Picker("Side", selection: $side) {
-                    Text("Buy").tag("buy"); Text("Sell").tag("sell")
-                }.pickerStyle(.segmented)
-                TextField("Amount in WB", text: $amountText).keyboardType(.decimalPad)
-                Button(side == "buy" ? "Buy \(symbol)" : "Sell \(symbol)") {
-                    Task { await submit() }
-                }
-                .disabled((amount ?? 0) <= 0 || busy)
-            }
-
-            if let message {
-                Section { Text(message).foregroundStyle(isError ? .red : .green).font(.footnote) }
-            }
+            .padding(.vertical)
         }
         .navigationTitle(symbol)
         .navigationBarTitleDisplayMode(.inline)
@@ -60,9 +53,122 @@ struct SymbolView: View {
             }
         }
         .task {
-            quote = try? await model.api.quote(symbol)
             watched = ((try? await model.api.watchlist()) ?? []).contains { $0.symbol == symbol }
+            await load()
         }
+    }
+
+    // MARK: Header
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(detail?.snapshot.longName ?? detail?.profile?.name ?? symbol)
+                .font(.headline).foregroundStyle(.secondary).lineLimit(1)
+            if let price = priceCents {
+                Text(Money.wb(price)).font(.system(size: 34, weight: .bold, design: .rounded))
+                if let day = dayChangeCents {
+                    Text(Money.wb(day, signed: true)).font(.subheadline.weight(.medium))
+                        .foregroundStyle(Money.tint(day))
+                }
+            } else if loading {
+                ProgressView()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal)
+    }
+
+    // MARK: Chart
+
+    private var chartSection: some View {
+        VStack(spacing: 8) {
+            if let candles = detail?.snapshot.candles, candles.count > 1 {
+                Chart(candles) { c in
+                    LineMark(x: .value("Date", c.date), y: .value("Price", Double(c.closeCents) / 100))
+                        .foregroundStyle(Color.whooshGreen)
+                    AreaMark(x: .value("Date", c.date), y: .value("Price", Double(c.closeCents) / 100))
+                        .foregroundStyle(LinearGradient(
+                            colors: [Color.whooshLime.opacity(0.45), Color.whooshLime.opacity(0.03)],
+                            startPoint: .top, endPoint: .bottom))
+                }
+                .chartYAxis { AxisMarks(position: .leading) }
+                .frame(height: 200).padding(.horizontal)
+            } else {
+                RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground))
+                    .frame(height: 200).overlay { if loading { ProgressView() } else { Text("No price history").foregroundStyle(.secondary).font(.footnote) } }
+                    .padding(.horizontal)
+            }
+            Picker("Range", selection: $range) {
+                ForEach(Array(ranges.enumerated()), id: \.offset) { i, r in Text(rangeLabels[i]).tag(r) }
+            }
+            .pickerStyle(.segmented).padding(.horizontal)
+            .onChange(of: range) { _, _ in Task { await load() } }
+        }
+    }
+
+    // MARK: Stats
+
+    private var statsSection: some View {
+        Group {
+            if let s = detail?.snapshot {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Key stats").font(.headline)
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                        stat("Day high", s.regularMarketDayHighCents.map { Money.wb($0) })
+                        stat("Day low", s.regularMarketDayLowCents.map { Money.wb($0) })
+                        stat("52-wk high", s.fiftyTwoWeekHighCents.map { Money.wb($0) })
+                        stat("52-wk low", s.fiftyTwoWeekLowCents.map { Money.wb($0) })
+                        stat("Volume", s.regularMarketVolume.map(Self.bigNumber))
+                        stat("Market cap", detail?.profile?.marketCap.map(Self.bigDollars))
+                        stat("Exchange", s.exchange ?? detail?.profile?.exchange)
+                        stat("Industry", detail?.profile?.industry)
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+
+    private func stat(_ label: String, _ value: String?) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.caption).foregroundStyle(.secondary)
+            Text(value ?? "—").font(.callout.weight(.medium))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10).background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    // MARK: Order
+
+    private var orderSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Trade").font(.headline)
+            Picker("Side", selection: $side) { Text("Buy").tag("buy"); Text("Sell").tag("sell") }
+                .pickerStyle(.segmented)
+            HStack {
+                Text("$")
+                TextField("Amount in WB", text: $amountText).keyboardType(.decimalPad)
+            }
+            .padding(10).background(Color(.secondarySystemBackground)).clipShape(RoundedRectangle(cornerRadius: 10))
+            Button(action: { Task { await submit() } }) {
+                Group { if busy { ProgressView() } else { Text(side == "buy" ? "Buy \(symbol)" : "Sell \(symbol)").bold() } }
+                    .frame(maxWidth: .infinity).padding()
+                    .background(Color.whooshLime).foregroundStyle(Color.whooshInk)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .opacity((amount ?? 0) > 0 && !busy ? 1 : 0.5)
+            }
+            .disabled((amount ?? 0) <= 0 || busy)
+        }
+        .padding(.horizontal)
+    }
+
+    // MARK: Actions
+
+    private func load() async {
+        loading = true
+        detail = try? await model.api.symbolDetail(symbol, range: range)
+        loading = false
     }
 
     private func submit() async {
@@ -75,6 +181,7 @@ struct SymbolView: View {
             isError = false
             message = "\(side == "buy" ? "Bought" : "Sold") \(symbol) — \(Money.wb(r.totalCents))."
             amountText = ""
+            await load()
         } catch let e as APIError {
             isError = true; message = e.message
             UINotificationFeedbackGenerator().notificationOccurred(.error)
@@ -87,6 +194,26 @@ struct SymbolView: View {
         let target = !watched
         watched = target
         do { try await model.api.mutateWatchlist(symbol: symbol, add: target) }
-        catch { watched = !target }   // revert on failure
+        catch { watched = !target }
+    }
+
+    // MARK: Formatting
+
+    private static func bigNumber(_ n: Int) -> String {
+        let d = Double(n)
+        switch d {
+        case 1_000_000_000...: return String(format: "%.1fB", d / 1_000_000_000)
+        case 1_000_000...: return String(format: "%.1fM", d / 1_000_000)
+        case 1_000...: return String(format: "%.1fK", d / 1_000)
+        default: return "\(n)"
+        }
+    }
+    private static func bigDollars(_ d: Double) -> String {
+        switch d {
+        case 1_000_000_000_000...: return String(format: "$%.2fT", d / 1_000_000_000_000)
+        case 1_000_000_000...: return String(format: "$%.1fB", d / 1_000_000_000)
+        case 1_000_000...: return String(format: "$%.1fM", d / 1_000_000)
+        default: return "$\(Int(d))"
+        }
     }
 }

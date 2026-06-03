@@ -8,11 +8,34 @@ struct InvestView: View {
     @State private var query = ""
     @State private var results: [SearchResult] = []
     @State private var watchlist: [WatchEntry] = []
+    @State private var positions: [Position] = []
+    @State private var orders: [Order] = []
     @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
         List {
             if query.isEmpty {
+                if !positions.isEmpty {
+                    Section("Your positions") {
+                        ForEach(positions) { p in
+                            NavigationLink(value: p.symbol) {
+                                HStack {
+                                    VStack(alignment: .leading) {
+                                        Text(p.symbol).font(.body.bold())
+                                        Text("\(p.shares, specifier: "%.4g") shares").font(.caption).foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    VStack(alignment: .trailing) {
+                                        Text(Money.wb(p.marketValueCents ?? 0)).font(.body)
+                                        if let day = p.dayChangeCents {
+                                            Text(Money.wb(day, signed: true)).font(.caption).foregroundStyle(Money.tint(day))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 Section("Watchlist") {
                     if watchlist.isEmpty {
                         Text("Search to find symbols, then ★ to watch them.")
@@ -21,6 +44,22 @@ struct InvestView: View {
                     ForEach(watchlist) { w in
                         NavigationLink(value: w.symbol) {
                             Label(w.symbol, systemImage: "star.fill").foregroundStyle(.primary)
+                        }
+                    }
+                }
+                if !orders.isEmpty {
+                    Section("Recent orders") {
+                        ForEach(orders) { o in
+                            HStack {
+                                Text(o.side.uppercased()).font(.caption.bold())
+                                    .foregroundStyle(o.side == "buy" ? Color.whooshGreen : .red)
+                                Text(o.symbol).font(.body)
+                                Spacer()
+                                VStack(alignment: .trailing) {
+                                    Text(Money.wb(o.totalCents)).font(.callout)
+                                    Text("\(o.shares, specifier: "%.4g") sh").font(.caption2).foregroundStyle(.secondary)
+                                }
+                            }
                         }
                     }
                 }
@@ -45,7 +84,14 @@ struct InvestView: View {
         .navigationDestination(for: String.self) { SymbolView(symbol: $0) }
         .searchable(text: $query, prompt: "Search stocks & crypto")
         .onChange(of: query) { _, q in scheduleSearch(q) }
-        .task { watchlist = (try? await model.api.watchlist()) ?? [] }
+        .task {
+            async let wl = try? model.api.watchlist()
+            async let dash = try? model.api.wallet()
+            async let ord = try? model.api.orders()
+            watchlist = await wl ?? []
+            positions = await dash?.positions ?? []
+            orders = await ord ?? []
+        }
     }
 
     private func scheduleSearch(_ q: String) {

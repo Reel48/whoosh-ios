@@ -695,6 +695,195 @@ components:
         - priceCents
         - prevCloseCents
         - fetchedAt
+    SymbolDetailResponse:
+      type: object
+      properties:
+        snapshot:
+          $ref: "#/components/schemas/StockSnapshot"
+        profile:
+          anyOf:
+            - $ref: "#/components/schemas/CompanyProfile"
+            - type: "null"
+        quote:
+          anyOf:
+            - $ref: "#/components/schemas/Quote"
+            - type: "null"
+      required:
+        - snapshot
+        - profile
+        - quote
+      description: GET /api/v1/wb/symbol?symbol=&range= — full stock detail for the
+        invest view.
+    StockSnapshot:
+      type: object
+      properties:
+        symbol:
+          type: string
+        longName:
+          type:
+            - string
+            - "null"
+        exchange:
+          type:
+            - string
+            - "null"
+        currency:
+          type: string
+        regularMarketPriceCents:
+          type:
+            - number
+            - "null"
+        regularMarketDayHighCents:
+          type:
+            - number
+            - "null"
+        regularMarketDayLowCents:
+          type:
+            - number
+            - "null"
+        fiftyTwoWeekHighCents:
+          type:
+            - number
+            - "null"
+        fiftyTwoWeekLowCents:
+          type:
+            - number
+            - "null"
+        regularMarketVolume:
+          type:
+            - number
+            - "null"
+        candles:
+          type: array
+          items:
+            $ref: "#/components/schemas/Candle"
+          description: Daily close candles for the requested range. Oldest first.
+      required:
+        - symbol
+        - longName
+        - exchange
+        - currency
+        - regularMarketPriceCents
+        - regularMarketDayHighCents
+        - regularMarketDayLowCents
+        - fiftyTwoWeekHighCents
+        - fiftyTwoWeekLowCents
+        - regularMarketVolume
+        - candles
+    Candle:
+      type: object
+      properties:
+        time:
+          type: number
+          description: Unix epoch seconds (market close timestamp).
+        closeCents:
+          type: number
+          description: Closing price in cents.
+        highCents:
+          type: number
+          description: Daily high in cents.
+        lowCents:
+          type: number
+          description: Daily low in cents.
+      required:
+        - time
+        - closeCents
+        - highCents
+        - lowCents
+    CompanyProfile:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        industry:
+          type:
+            - string
+            - "null"
+        country:
+          type:
+            - string
+            - "null"
+        currency:
+          type: string
+        exchange:
+          type:
+            - string
+            - "null"
+        ipo:
+          type:
+            - string
+            - "null"
+        logoUrl:
+          type:
+            - string
+            - "null"
+        weburl:
+          type:
+            - string
+            - "null"
+        marketCap:
+          type:
+            - number
+            - "null"
+          description: Market cap in dollars (Finnhub returns millions; we convert to
+            dollars).
+        shareOutstandingMillions:
+          type:
+            - number
+            - "null"
+          description: Shares outstanding in millions.
+      required:
+        - symbol
+        - name
+        - industry
+        - country
+        - currency
+        - exchange
+        - ipo
+        - logoUrl
+        - weburl
+        - marketCap
+        - shareOutstandingMillions
+    OrdersResponse:
+      type: object
+      properties:
+        orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+      required:
+        - orders
+      description: GET /api/v1/wb/orders — the user's recent investing orders.
+    Order:
+      type: object
+      properties:
+        id:
+          type: number
+        symbol:
+          type: string
+        side:
+          type: string
+          enum:
+            - buy
+            - sell
+        shares:
+          type: number
+        priceCents:
+          type: number
+        totalCents:
+          type: number
+        createdAt:
+          type: string
+      required:
+        - id
+        - symbol
+        - side
+        - shares
+        - priceCents
+        - totalCents
+        - createdAt
     SearchResult:
       type: object
       properties:
@@ -2504,6 +2693,111 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
         "404":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/wb/symbol:
+    get:
+      operationId: getSymbolDetail
+      summary: "Full stock detail: snapshot + candles + profile + quote."
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          description: Ticker or crypto symbol.
+          schema:
+            type: string
+        - name: range
+          in: query
+          required: false
+          description: 1m|3m|6m|1y|5y (default 1y).
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/SymbolDetailResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/wb/orders:
+    get:
+      operationId: getOrders
+      summary: The user's recent investing orders.
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/OrdersResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
           description: Error envelope.
           content:
             application/json:

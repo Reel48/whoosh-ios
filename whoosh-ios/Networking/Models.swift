@@ -154,6 +154,52 @@ struct Quote: Decodable, Sendable {
 
 struct InvestOrderResult: Decodable, Sendable { let orderId: Int; let totalCents: Int }
 
+// Stock detail (GET /wb/symbol)
+struct Candle: Decodable, Sendable, Identifiable {
+    let time: Int            // unix epoch seconds
+    let closeCents: Int
+    var id: Int { time }
+    var date: Date { Date(timeIntervalSince1970: Double(time)) }
+}
+
+struct StockSnapshot: Decodable, Sendable {
+    let symbol: String
+    let longName: String?
+    let exchange: String?
+    let regularMarketPriceCents: Int?
+    let regularMarketDayHighCents: Int?
+    let regularMarketDayLowCents: Int?
+    let fiftyTwoWeekHighCents: Int?
+    let fiftyTwoWeekLowCents: Int?
+    let regularMarketVolume: Int?
+    let candles: [Candle]
+}
+
+struct CompanyProfile: Decodable, Sendable {
+    let symbol: String
+    let name: String
+    let industry: String?
+    let exchange: String?
+    let marketCap: Double?       // dollars
+    let logoUrl: String?
+}
+
+struct SymbolDetail: Decodable, Sendable {
+    let snapshot: StockSnapshot
+    let profile: CompanyProfile?
+    let quote: Quote?
+}
+
+struct Order: Decodable, Sendable, Identifiable {
+    let id: Int
+    let symbol: String
+    let side: String
+    let shares: Double
+    let priceCents: Int
+    let totalCents: Int
+    let createdAt: String
+}
+
 struct WatchEntry: Decodable, Sendable, Identifiable {
     let symbol: String
     let addedAt: String

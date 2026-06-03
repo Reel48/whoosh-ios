@@ -65,6 +65,15 @@ actor WhooshAPI {
         let enc = symbol.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         return try await get("/api/v1/wb/quote?symbol=\(enc)")
     }
+    func symbolDetail(_ symbol: String, range: String) async throws -> SymbolDetail {
+        let enc = symbol.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        return try await get("/api/v1/wb/symbol?symbol=\(enc)&range=\(range)")
+    }
+    func orders() async throws -> [Order] {
+        struct R: Decodable { let orders: [Order] }
+        let r: R = try await get("/api/v1/wb/orders")
+        return r.orders
+    }
     func placeOrder(symbol: String, side: String, amount: Double?, shares: Double?) async throws -> InvestOrderResult {
         try await post("/api/v1/wb/invest/order",
                        body: InvestOrderBody(symbol: symbol, side: side, amount: amount, shares: shares))
