@@ -185,6 +185,64 @@ struct BetEvent: Decodable, Sendable, Identifiable {
     let awayTeam: String?
     let commenceTime: String?
     let outcomes: [BetOutcome]
+    /// Shared across a game's markets (Moneyline/Spread/Total) when synced.
+    let externalEventId: String?
+    let sportKey: String?
+    let market: String?            // "h2h" | "spreads" | "totals"
+}
+
+/// A game = one matchup with its markets grouped (mirrors the web's `groupSyncedByGame`).
+struct BetGame: Identifiable {
+    let key: String
+    let matchup: String
+    let sportKey: String?
+    let commenceTime: String?
+    let markets: [BetEvent]        // ordered Moneyline → Spread → Total
+    var id: String { key }
+}
+
+enum BetMarketCatalog {
+    static func label(_ market: String?) -> String {
+        switch market {
+        case "h2h": return "Moneyline"
+        case "spreads": return "Spread"
+        case "totals": return "Total"
+        default: return "Bet"
+        }
+    }
+    static let order = ["h2h", "spreads", "totals"]
+    static let sportTitles: [String: String] = [
+        "americanfootball_nfl": "NFL",
+        "americanfootball_ncaaf": "College Football",
+        "basketball_nba": "NBA",
+        "baseball_mlb": "MLB",
+        "soccer_epl": "Premier League",
+        "soccer_uefa_champs_league": "Champions League",
+    ]
+    static func sportTitle(_ key: String?) -> String {
+        guard let key else { return "Sports" }
+        return sportTitles[key] ?? key
+    }
+
+    /// Fold per-market events into games, markets ordered ML→spread→total, games by time.
+    static func groupByGame(_ events: [BetEvent]) -> [BetGame] {
+        var byGame: [String: [BetEvent]] = [:]
+        var keyOrder: [String] = []
+        for e in events {
+            let key = e.externalEventId ?? String(e.id)
+            if byGame[key] == nil { keyOrder.append(key) }
+            byGame[key, default: []].append(e)
+        }
+        let games = keyOrder.map { key -> BetGame in
+            let markets = byGame[key]!.sorted {
+                (order.firstIndex(of: $0.market ?? "h2h") ?? 0) < (order.firstIndex(of: $1.market ?? "h2h") ?? 0)
+            }
+            let first = markets[0]
+            return BetGame(key: key, matchup: first.title, sportKey: first.sportKey,
+                           commenceTime: first.commenceTime, markets: markets)
+        }
+        return games.sorted { ($0.commenceTime ?? "~") < ($1.commenceTime ?? "~") }
+    }
 }
 
 struct UserWager: Decodable, Sendable, Identifiable {

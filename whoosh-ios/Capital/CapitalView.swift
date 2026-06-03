@@ -20,6 +20,9 @@ struct CapitalView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    Text("Whoosh Capital")
+                        .font(.largeTitle.bold())
+                        .padding(.horizontal)
                     if !ticker.isEmpty { TickerStrip(quotes: ticker) }
                     balanceHero
                     if bonus?.available == true { bonusBanner }
@@ -30,15 +33,16 @@ struct CapitalView: View {
                     allocationStrip
                     VStack(spacing: 10) {
                         navRow("Invest", "chart.line.uptrend.xyaxis") { InvestView() }
-                        navRow("House Bets", "dice.fill") { BetsView() }
+                        navRow("Bets", "dice.fill") { BetsView() }
                     }
                     .padding(.horizontal)
                     positionsSection
                     if let error { Text(error).foregroundStyle(.red).font(.footnote).padding(.horizontal) }
                 }
-                .padding(.vertical)
+                .padding(.top, 8)
+                .padding(.bottom, 20)
             }
-            .navigationTitle("Capital")
+            .toolbar(.hidden, for: .navigationBar)
             .refreshable { await load(haptic: true) }
             .task { if !loaded { await load(); loaded = true } }
             .sheet(isPresented: $showBuy) { BuyWBSheet() }
