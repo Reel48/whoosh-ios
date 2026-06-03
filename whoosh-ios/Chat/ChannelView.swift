@@ -30,8 +30,17 @@ struct ChannelView: View {
                 footerNote("Only admins can post here.")
             }
         }
-        .navigationTitle(channel.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 1) {
+                    Text(channel.name).font(.headline)
+                    if let d = channel.description, !d.isEmpty {
+                        Text(d).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                }
+            }
+        }
         .overlay(alignment: .top) { levelToastView }
         .task { await vm.start(api: model.api, realtime: model.realtime, channel: channel) }
         .onDisappear { Task { await vm.stop() } }
@@ -45,10 +54,13 @@ struct ChannelView: View {
     private var messageList: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
-                    ForEach(vm.messages) { msg in
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(vm.messages.enumerated()), id: \.element.id) { i, msg in
+                        let prev = i > 0 ? vm.messages[i - 1] : nil
+                        if dayChanged(prev, msg) { DayDivider(label: ChatTime.dayLabel(msg.createdAt)) }
                         MessageRow(
                             message: msg,
+                            showsHeader: showsHeader(prev, msg),
                             onReact: { emoji in _ = Task { await vm.react(msg, emoji: emoji) } },
                             canEdit: msg.mine, onEdit: { editing = msg; draft = msg.body },
                             canDelete: msg.mine, onDelete: { _ = Task { await vm.delete(msg) } })
@@ -61,6 +73,21 @@ struct ChannelView: View {
                 if let last = vm.messages.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
             }
         }
+    }
+
+    /// Show the author header unless this continues a run from the same author
+    /// within 5 minutes (and on the same day).
+    private func showsHeader(_ prev: ChatMessage?, _ msg: ChatMessage) -> Bool {
+        guard let prev else { return true }
+        if prev.author.id != msg.author.id { return true }
+        if dayChanged(prev, msg) { return true }
+        guard let a = ChatTime.date(prev.createdAt), let b = ChatTime.date(msg.createdAt) else { return true }
+        return b.timeIntervalSince(a) > 300
+    }
+
+    private func dayChanged(_ prev: ChatMessage?, _ msg: ChatMessage) -> Bool {
+        guard let prev, let a = ChatTime.date(prev.createdAt), let b = ChatTime.date(msg.createdAt) else { return prev == nil }
+        return !Calendar.current.isDate(a, inSameDayAs: b)
     }
 
     private var mentionBar: some View {
@@ -169,6 +196,19 @@ struct ChannelView: View {
             draft.replaceSubrange(at.lowerBound..., with: "@\(username) ")
         }
         mentionResults = []
+    }
+}
+
+/// A slim centered date separator between days of messages.
+struct DayDivider: View {
+    let label: String
+    var body: some View {
+        HStack(spacing: 8) {
+            Rectangle().fill(Color(.separator)).frame(height: 0.5)
+            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(.secondary).fixedSize()
+            Rectangle().fill(Color(.separator)).frame(height: 0.5)
+        }
+        .padding(.vertical, 10)
     }
 }
 
