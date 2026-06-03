@@ -16,6 +16,11 @@ struct NewsView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                Text("Sports News")
+                    .font(.largeTitle.bold())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal).padding(.top, 8).padding(.bottom, 12)
+
                 Picker("", selection: $mode) {
                     ForEach(Mode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }
@@ -27,7 +32,7 @@ struct NewsView: View {
                 case .mine: FeedList(entries: mineEntries, empty: "You haven't kept any articles yet")
                 }
             }
-            .navigationTitle("Sports News")
+            .toolbar(.hidden, for: .navigationBar)
             .task(id: mode) { await loadForMode() }
         }
     }
@@ -57,6 +62,7 @@ struct NewsView: View {
             } else {
                 SwipeDeck(
                     articles: $deck,
+                    sportLabel: NewsCatalog.sports.first { $0.key == sport }?.label,
                     onDecide: { article, direction in
                         _ = try? await model.api.swipe(sport: sport, direction: direction, article: article)
                     },

@@ -6,6 +6,8 @@ import UIKit
 /// the article array and records the decision via `onDecide`.
 struct SwipeDeck: View {
     @Binding var articles: [Article]
+    /// League label shown on each card (e.g. "NFL").
+    var sportLabel: String? = nil
     /// Called when the top card is decided. `direction` is "right" (keep) / "left" (pass).
     var onDecide: (Article, String) async -> Void
     /// Undo the most recent decision (re-inserts the card).
@@ -39,7 +41,7 @@ struct SwipeDeck: View {
     @ViewBuilder
     private func cardView(_ article: Article, idx: Int) -> some View {
         let isTop = idx == 0
-        ArticleCard(article: article)
+        ArticleCard(article: article, sportLabel: sportLabel)
             .overlay(alignment: .top) { if isTop { decisionStamps } }
             .scaleEffect(isTop ? 1 : 1 - CGFloat(idx) * 0.04)
             .offset(y: isTop ? 0 : CGFloat(idx) * 12)
