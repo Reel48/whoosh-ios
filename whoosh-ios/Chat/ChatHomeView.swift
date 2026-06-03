@@ -11,14 +11,17 @@ struct ChatHomeView: View {
     // call so the channel list loads fast).
     @State private var wbCents: Int?
     @State private var fantasyRank: Int?
+    @State private var path = NavigationPath()
+    /// Clears a channel's unread badge locally when opened, ahead of the next load.
+    @State private var readOverride: [Int: Int] = [:]
+    @ObservedObject private var push = PushManager.shared
+
+    private var allChannels: [ChatChannel] { overview?.categories.flatMap(\.channels) ?? [] }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack(spacing: 0) {
-                Text("Whoosh Chat")
-                    .font(.largeTitle.bold())
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal).padding(.top, 8).padding(.bottom, 6)
+                header
 
                 Group {
                     if let overview {
@@ -36,8 +39,10 @@ struct ChatHomeView: View {
 
                                     VStack(spacing: 8) {
                                         ForEach(category.channels) { channel in
-                                            NavigationLink { destination(channel) } label: { channelCard(channel) }
-                                                .buttonStyle(.plain)
+                                            NavigationLink(value: ChatRoute.channel(channel)) {
+                                                channelCard(channel, unread: readOverride[channel.id] ?? channel.unreadCount)
+                                            }
+                                            .buttonStyle(.plain)
                                         }
                                     }
                                     .padding(.horizontal, 16)
@@ -54,9 +59,55 @@ struct ChatHomeView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: ChatRoute.self) { routeView($0) }
             .task { if !loaded { await load() } }
             .refreshable { await load() }
+            .onChange(of: push.pendingDeepLink) { _, link in routeDeepLink(link) }
         }
+    }
+
+    // MARK: Header + routing
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            Text("Whoosh Chat").font(.largeTitle.bold())
+            Spacer()
+            NavigationLink(value: ChatRoute.search) {
+                Image(systemName: "magnifyingglass").font(.title3)
+            }
+            NavigationLink(value: ChatRoute.dms) {
+                Image(systemName: "paperplane").font(.title3)
+            }
+            NavigationLink(value: ChatRoute.notifications) {
+                NotificationBell(store: model.notifications)
+            }
+        }
+        .tint(.primary)
+        .padding(.horizontal).padding(.top, 8).padding(.bottom, 6)
+    }
+
+    @ViewBuilder
+    private func routeView(_ route: ChatRoute) -> some View {
+        switch route {
+        case .channel(let c):
+            destination(c).onAppear { readOverride[c.id] = 0 }
+        case .dms:
+            DMListView()
+        case .search:
+            ChatSearchView(channels: allChannels)
+        case .notifications:
+            NotificationsView(channels: allChannels, store: model.notifications)
+        }
+    }
+
+    /// "chat:<channelId>:<messageId>" from a tapped push → open that channel.
+    private func routeDeepLink(_ link: String?) {
+        guard let link, link.hasPrefix("chat:") else { return }
+        let parts = link.split(separator: ":")
+        guard parts.count >= 2, let id = Int(parts[1]),
+              let channel = allChannels.first(where: { $0.id == id }) else { return }
+        path.append(ChatRoute.channel(channel))
+        push.pendingDeepLink = nil
     }
 
     // MARK: Hero
@@ -117,7 +168,7 @@ struct ChatHomeView: View {
 
     /// A standalone channel card — spaced apart so categories don't read as one
     /// dense block. All icons share the same neutral tint.
-    private func channelCard(_ c: ChatChannel) -> some View {
+    private func channelCard(_ c: ChatChannel, unread: Int) -> some View {
         HStack(spacing: 13) {
             Image(systemName: ChannelIcon.symbol(slug: c.slug, kind: c.kind))
                 .font(.system(size: 16))
@@ -125,12 +176,17 @@ struct ChatHomeView: View {
                 .frame(width: 34, height: 34)
                 .background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 9))
             VStack(alignment: .leading, spacing: 1) {
-                Text(c.name).font(.body.weight(.medium)).foregroundStyle(.primary)
+                Text(c.name).font(.body.weight(unread > 0 ? .semibold : .medium)).foregroundStyle(.primary)
                 if let d = c.description, !d.isEmpty {
                     Text(d).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 }
             }
             Spacer(minLength: 8)
+            if unread > 0 {
+                Text("\(unread)").font(.caption2.bold().monospacedDigit()).foregroundStyle(Color.whooshInk)
+                    .padding(.horizontal, 7).padding(.vertical, 2)
+                    .background(Color.whooshLime, in: Capsule())
+            }
             if c.requiredRoleId != nil {
                 Image(systemName: "lock.fill").font(.caption2).foregroundStyle(.tertiary)
             }

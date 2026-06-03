@@ -164,11 +164,12 @@ components:
           description: Admin adjustments.
         totalReturnCents:
           type: number
-          description: Total return vs. money in (purchases).
+          description: "Gameplay gains: interest + wager P/L + investing P/L (incl.
+            dividends)."
         totalReturnFraction:
           type: number
-          description: Total return as a fraction of money in (purchases + premium match).
-            0 if denom is 0.
+          description: Gains as a fraction of principal contributed (equity − gains). 0 if
+            no principal.
       required:
         - realDollarsInCents
         - premiumMatchCents
@@ -406,6 +407,8 @@ components:
         - renewal
         - referral
         - system
+        - chat_mention
+        - chat_dm
     MarkReadResponse:
       type: object
       properties:
@@ -1044,6 +1047,9 @@ components:
           type: boolean
           description: Whether first-run onboarding is complete — the iOS app branches on
             this.
+        premium:
+          type: boolean
+          description: Whether the user currently holds Whoosh Premium (perk tier).
         auth:
           type: object
           properties:
@@ -1075,6 +1081,7 @@ components:
         - discordUserId
         - isAdmin
         - onboarded
+        - premium
         - auth
         - referrals
         - achievements
@@ -1978,6 +1985,500 @@ components:
       required:
         - href
         - label
+    ChatOverviewResponse:
+      $ref: "#/components/schemas/ChatOverview"
+      description: GET /api/v1/chat/overview — accessible categories/channels + the
+        viewer's level/roles.
+    ChatOverview:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatCategory"
+        me:
+          $ref: "#/components/schemas/ChatMe"
+      required:
+        - categories
+        - me
+    ChatCategory:
+      type: object
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        position:
+          type: number
+        channels:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatChannel"
+      required:
+        - id
+        - name
+        - position
+        - channels
+    ChatChannel:
+      type: object
+      properties:
+        id:
+          type: number
+        categoryId:
+          type: number
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type:
+            - string
+            - "null"
+        kind:
+          type: string
+          description: '"text" | "media" | "leaderboard" | "starboard"'
+        postPolicy:
+          type: string
+          description: '"members" | "admins" | "system"'
+        requiredRoleId:
+          type:
+            - number
+            - "null"
+        canPost:
+          type: boolean
+          description: Whether the viewer may post here (post policy + role).
+        unread:
+          type: number
+          description: Messages with id greater than the viewer's last-read mark.
+        lastActivityAt:
+          type:
+            - string
+            - "null"
+          description: Timestamp of the most recent message, or null if empty.
+      required:
+        - id
+        - categoryId
+        - slug
+        - name
+        - description
+        - kind
+        - postPolicy
+        - requiredRoleId
+        - canPost
+        - unread
+        - lastActivityAt
+    ChatMe:
+      type: object
+      properties:
+        userId:
+          type: string
+        avatarUrl:
+          type:
+            - string
+            - "null"
+        level:
+          type: number
+        xp:
+          type: number
+        rank:
+          type: number
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatRole"
+      required:
+        - userId
+        - avatarUrl
+        - level
+        - xp
+        - rank
+        - roles
+    ChatRole:
+      type: object
+      properties:
+        id:
+          type: number
+        key:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+        priority:
+          type: number
+      required:
+        - id
+        - key
+        - name
+        - color
+        - priority
+    ChatMessagesResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+      required:
+        - messages
+      description: GET /api/v1/chat/channels/[id]/messages?before= — paginated,
+        enriched history.
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: number
+        channelId:
+          type: number
+        author:
+          $ref: "#/components/schemas/ChatAuthor"
+        body:
+          type: string
+        imageUrl:
+          type:
+            - string
+            - "null"
+        replyToId:
+          type:
+            - number
+            - "null"
+        starCount:
+          type: number
+        reactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatReactionSummary"
+        mine:
+          type: boolean
+        createdAt:
+          type: string
+        editedAt:
+          type:
+            - string
+            - "null"
+      required:
+        - id
+        - channelId
+        - author
+        - body
+        - imageUrl
+        - replyToId
+        - starCount
+        - reactions
+        - mine
+        - createdAt
+        - editedAt
+    ChatAuthor:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        avatarUrl:
+          type:
+            - string
+            - "null"
+        level:
+          type: number
+        roleColor:
+          type: string
+      required:
+        - id
+        - username
+        - avatarUrl
+        - level
+        - roleColor
+      description: A message author, denormalized for display (name color = top role).
+    ChatReactionSummary:
+      type: object
+      properties:
+        emoji:
+          type: string
+        count:
+          type: number
+        mine:
+          type: boolean
+      required:
+        - emoji
+        - count
+        - mine
+    SendChatMessageRequest:
+      type: object
+      properties:
+        body:
+          type: string
+        imageUrl:
+          type:
+            - string
+            - "null"
+        replyTo:
+          type:
+            - number
+            - "null"
+      description: POST /api/v1/chat/channels/[id]/messages — send a message.
+    SendChatMessageResponse:
+      type: object
+      properties:
+        message:
+          $ref: "#/components/schemas/ChatMessage"
+        level:
+          type: number
+        leveledUp:
+          type: boolean
+      required:
+        - message
+        - level
+        - leveledUp
+    ChatReactRequest:
+      type: object
+      properties:
+        emoji:
+          type: string
+        on:
+          type: boolean
+      required:
+        - emoji
+        - on
+      description: POST /api/v1/chat/messages/[id]/react — toggle a reaction; returns
+        the emoji's new count.
+    ChatReactResponse:
+      type: object
+      properties:
+        count:
+          type: number
+      required:
+        - count
+    ChatEditRequest:
+      type: object
+      properties:
+        body:
+          type: string
+      required:
+        - body
+      description: PATCH /api/v1/chat/messages/[id] — edit own message.
+    ChatReadRequest:
+      type: object
+      properties:
+        messageId:
+          type: number
+      required:
+        - messageId
+      description: POST /api/v1/chat/channels/[id]/read — advance the viewer's
+        last-read mark.
+    ChatUploadResponse:
+      type: object
+      properties:
+        url:
+          type: string
+      required:
+        - url
+      description: POST /api/v1/chat/upload — multipart image → public URL.
+    ChatLeaderboardResponse:
+      type: object
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatLeaderboardRow"
+      required:
+        - rows
+      description: GET /api/v1/chat/leaderboard — XP ranking.
+    ChatLeaderboardRow:
+      type: object
+      properties:
+        rank:
+          type: number
+        user:
+          $ref: "#/components/schemas/ChatAuthor"
+        xp:
+          type: number
+        level:
+          type: number
+        messageCount:
+          type: number
+      required:
+        - rank
+        - user
+        - xp
+        - level
+        - messageCount
+    ChatStarboardResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+      required:
+        - messages
+      description: GET /api/v1/chat/starboard — most-starred messages.
+    ChatUsersResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatAuthor"
+      required:
+        - users
+      description: GET /api/v1/chat/users?ids= — enrich authors for the realtime cache.
+    ChatMembersResponse:
+      type: object
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMember"
+      required:
+        - members
+      description: GET /api/v1/chat/members?q= —
+    ChatMember:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        avatarUrl:
+          type:
+            - string
+            - "null"
+      required:
+        - id
+        - username
+        - avatarUrl
+    DeviceTokenRequest:
+      type: object
+      properties:
+        token:
+          type: string
+        platform:
+          type: string
+      required:
+        - token
+      description: POST /api/v1/account/device-token — register an APNs device token.
+    DeviceTokenResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required:
+        - ok
+    ChatSearchResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+      required:
+        - messages
+      description: GET /api/v1/chat/search?q=&channelId= — full-text message search.
+    ChatDmsResponse:
+      type: object
+      properties:
+        conversations:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatDmConversation"
+      required:
+        - conversations
+      description: GET /api/v1/chat/dms — the viewer's DM conversations.
+    ChatDmConversation:
+      type: object
+      properties:
+        channelId:
+          type: number
+        other:
+          $ref: "#/components/schemas/ChatAuthor"
+        lastBody:
+          type:
+            - string
+            - "null"
+        lastAt:
+          type:
+            - string
+            - "null"
+        unread:
+          type: number
+      required:
+        - channelId
+        - other
+        - lastBody
+        - lastAt
+        - unread
+      description: A DM conversation row for the inbox list.
+    ChatDmOpenRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+      required:
+        - userId
+      description: POST /api/v1/chat/dms — open/create a 1:1 DM; returns it as a channel.
+    ChatDmOpenResponse:
+      type: object
+      properties:
+        channel:
+          $ref: "#/components/schemas/ChatChannel"
+      required:
+        - channel
+    ChatRolesResponse:
+      type: object
+      properties:
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatRole"
+      required:
+        - roles
+      description: GET /api/v1/chat/admin/roles — all roles (admin).
+    CreateChatRoleRequest:
+      type: object
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+        priority:
+          type: number
+      required:
+        - key
+        - name
+        - color
+      description: POST /api/v1/chat/admin/roles — create a custom role (admin).
+    CreateChatRoleResponse:
+      type: object
+      properties:
+        role:
+          $ref: "#/components/schemas/ChatRole"
+      required:
+        - role
+    ChatRoleAssignRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+        roleId:
+          type: number
+        on:
+          type: boolean
+      required:
+        - userId
+        - roleId
+      description: POST /api/v1/chat/admin/roles/assign — assign/remove (admin);
+        `on:false` removes.
+    ChatOkResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required:
+        - ok
+      description: Generic acknowledgement for chat mutations with no payload.
     ApiError:
       type: object
       required:
@@ -3571,6 +4072,55 @@ paths:
                 file:
                   type: string
                   format: binary
+  /api/v1/account/device-token:
+    post:
+      operationId: registerDeviceToken
+      summary: Register this device's APNs token for push notifications.
+      tags:
+        - account
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/DeviceTokenResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceTokenRequest"
   /api/v1/home:
     get:
       operationId: getHome
@@ -3816,6 +4366,965 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/FantasyCheckoutRequest"
+  /api/v1/chat/overview:
+    get:
+      operationId: getChatOverview
+      summary: Accessible categories/channels + the viewer's level and roles.
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatOverviewResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/chat/channels/{channelId}/messages:
+    get:
+      operationId: getChatMessages
+      summary: Paginated, enriched message history for a channel.
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: before
+          in: query
+          required: false
+          description: Return messages with id < before (older page).
+          schema:
+            type: string
+        - name: after
+          in: query
+          required: false
+          description: Return messages with id > after (jump to unread).
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatMessagesResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: sendChatMessage
+      summary: Post a message (grants XP/level).
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/SendChatMessageResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendChatMessageRequest"
+  /api/v1/chat/messages/{messageId}/react:
+    post:
+      operationId: reactChatMessage
+      summary: Toggle a reaction; returns the emoji's new count.
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatReactResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatReactRequest"
+  /api/v1/chat/messages/{messageId}:
+    patch:
+      operationId: editChatMessage
+      summary: Edit your own message.
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatOkResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatEditRequest"
+    delete:
+      operationId: deleteChatMessage
+      summary: Delete your own message (admins may delete any).
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatOkResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/chat/channels/{channelId}/read:
+    post:
+      operationId: markChatRead
+      summary: Advance the viewer's last-read mark for a channel.
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatOkResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatReadRequest"
+  /api/v1/chat/upload:
+    post:
+      operationId: uploadChatImage
+      summary: Upload a chat image (multipart) → public URL.
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatUploadResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+  /api/v1/chat/leaderboard:
+    get:
+      operationId: getChatLeaderboard
+      summary: XP leaderboard.
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatLeaderboardResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/chat/starboard:
+    get:
+      operationId: getChatStarboard
+      summary: Most-starred messages.
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatStarboardResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/chat/users:
+    get:
+      operationId: getChatUsers
+      summary: Enrich a set of user ids for the realtime author cache.
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: ids
+          in: query
+          required: false
+          description: Comma-separated user ids.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatUsersResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/chat/members:
+    get:
+      operationId: searchChatMembers
+      summary: "@mention picker: profiles by username prefix."
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Username prefix.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatMembersResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/chat/search:
+    get:
+      operationId: searchChatMessages
+      summary: Full-text search over messages the viewer can read.
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query (websearch syntax).
+          schema:
+            type: string
+        - name: channelId
+          in: query
+          required: false
+          description: Restrict to a single channel.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatSearchResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/chat/dms:
+    get:
+      operationId: listChatDms
+      summary: The viewer's DM conversations (most recent first).
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatDmsResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: openChatDm
+      summary: Open or create the 1:1 DM with another user.
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatDmOpenResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatDmOpenRequest"
+  /api/v1/chat/admin/roles:
+    get:
+      operationId: listChatRoles
+      summary: All chat roles (admin).
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatRolesResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: createChatRole
+      summary: Create a custom assignable role (admin).
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/CreateChatRoleResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChatRoleRequest"
+  /api/v1/chat/admin/roles/assign:
+    post:
+      operationId: assignChatRole
+      summary: Assign or remove a role for a user (admin).
+      tags:
+        - chat
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ChatOkResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRoleAssignRequest"
 webhooks:
   appleIapNotification:
     post:
