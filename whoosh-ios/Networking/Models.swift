@@ -127,6 +127,7 @@ struct LedgerEntry: Decodable, Sendable, Identifiable {
 
 struct TransferResult: Decodable, Sendable { let transferId: Int }
 struct BonusResult: Decodable, Sendable { let claimed: Bool; let amountCents: Int; let streak: Int }
+struct BonusStatus: Decodable, Sendable { let available: Bool; let streak: Int }
 struct CheckoutURL: Decodable, Sendable { let url: String }
 
 struct BuyWBBody: Encodable { let amount: Double }

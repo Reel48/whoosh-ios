@@ -47,6 +47,7 @@ actor WhooshAPI {
         try await post("/api/v1/wb/transfer", body: TransferBody(recipient: recipient, amount: amount, memo: memo))
     }
     func claimBonus() async throws -> BonusResult { try await postNoBody("/api/v1/wb/bonus") }
+    func bonusStatus() async throws -> BonusStatus { try await get("/api/v1/wb/bonus") }
     func activity() async throws -> [LedgerEntry] {
         struct R: Decodable { let entries: [LedgerEntry] }
         let r: R = try await get("/api/v1/wb/activity")
