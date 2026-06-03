@@ -14,12 +14,13 @@ struct SocialEmbed: View {
     @State private var height: CGFloat = 220
 
     var body: some View {
+        // No outer clip/shape — the platform embed renders its own rounded,
+        // bordered card; clipping it cuts off those corners.
         WebEmbedView(html: Self.html(url: url, kind: kind, dark: scheme == .dark),
                      baseURL: Self.baseURL(kind),
                      height: $height)
             .frame(height: height)
             .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
             .padding(.top, 4)
     }
 
