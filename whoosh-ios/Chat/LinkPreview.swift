@@ -14,7 +14,9 @@ struct LinkPreview: View {
     private var isImage: Bool { Self.imageExts.contains(url.pathExtension.lowercased()) }
 
     var body: some View {
-        if isImage {
+        if let kind = SocialEmbed.kind(for: url) {
+            SocialEmbed(url: url, kind: kind)
+        } else if isImage {
             AsyncImage(url: url) { img in
                 img.resizable().scaledToFit()
             } placeholder: {
