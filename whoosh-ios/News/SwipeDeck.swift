@@ -29,11 +29,12 @@ struct SwipeDeck: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 420)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             controls
+                .padding(.bottom, 8)
         }
+        .frame(maxHeight: .infinity)
     }
 
     // MARK: Cards

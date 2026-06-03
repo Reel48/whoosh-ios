@@ -70,7 +70,6 @@ struct NewsView: View {
                         _ = try? await model.api.undoSwipe(guid: article.guid)
                     }
                 )
-                Spacer(minLength: 0)
             }
         }
     }
