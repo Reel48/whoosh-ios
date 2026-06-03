@@ -1,48 +1,48 @@
 import Foundation
 
-/// Per-channel emoji icons (client-side, mirroring the Discord server). Keyed by
-/// slug with a `kind`-based fallback so new channels still get a sensible glyph.
+/// Per-channel SF Symbol icons (client-side), keyed by slug with a `kind`-based
+/// fallback so new channels still get a sensible glyph.
 enum ChannelIcon {
     private static let bySlug: [String: String] = [
-        "welcome": "👋",
-        "whoosh-philanthropy": "🌎",
-        "xp-leaderboard": "🏆",
-        "starboard": "⭐",
-        "general": "💬",
-        "announcements": "📢",
-        "nfl-football": "🏈",
-        "college-football": "🎓",
-        "baseball": "⚾",
-        "soccer": "⚽",
-        "basketball": "🏀",
-        "golf": "⛳",
-        "fights": "🥊",
-        "tennis": "🎾",
-        "pic-of-the-day": "📸",
-        "movies-tv": "🎬",
-        "music": "🎵",
-        "gaming": "🎮",
-        "youtube-videos": "▶️",
-        "health-fitness": "💪",
-        "food-drinks": "🍔",
-        "money-rankings": "💰",
-        "premium": "💎",
-        "sports-betting": "🎲",
-        "business": "📈",
-        "politics": "🏛️",
-        "admin-chat": "🛠️",
-        "payments": "💳",
-        "security": "🔒",
+        "welcome": "hand.wave.fill",
+        "whoosh-philanthropy": "globe.americas.fill",
+        "xp-leaderboard": "trophy.fill",
+        "starboard": "star.fill",
+        "general": "bubble.left.and.bubble.right.fill",
+        "announcements": "megaphone.fill",
+        "nfl-football": "football.fill",
+        "college-football": "graduationcap.fill",
+        "baseball": "baseball.fill",
+        "soccer": "soccerball",
+        "basketball": "basketball.fill",
+        "golf": "figure.golf",
+        "fights": "figure.boxing",
+        "tennis": "tennisball.fill",
+        "pic-of-the-day": "photo.fill",
+        "movies-tv": "tv.fill",
+        "music": "music.note",
+        "gaming": "gamecontroller.fill",
+        "youtube-videos": "play.rectangle.fill",
+        "health-fitness": "figure.run",
+        "food-drinks": "fork.knife",
+        "money-rankings": "dollarsign.circle.fill",
+        "premium": "crown.fill",
+        "sports-betting": "dice.fill",
+        "business": "chart.line.uptrend.xyaxis",
+        "politics": "building.columns.fill",
+        "admin-chat": "wrench.and.screwdriver.fill",
+        "payments": "creditcard.fill",
+        "security": "lock.shield.fill",
     ]
 
-    /// The emoji for a channel, falling back to its kind, then a hash glyph.
-    static func emoji(slug: String, kind: String) -> String {
-        if let e = bySlug[slug] { return e }
+    /// The SF Symbol name for a channel, falling back to its kind, then `number`.
+    static func symbol(slug: String, kind: String) -> String {
+        if let s = bySlug[slug] { return s }
         switch kind {
-        case "leaderboard": return "🏆"
-        case "starboard": return "⭐"
-        case "media": return "📸"
-        default: return "#️⃣"
+        case "leaderboard": return "trophy.fill"
+        case "starboard": return "star.fill"
+        case "media": return "photo.fill"
+        default: return "number"
         }
     }
 }

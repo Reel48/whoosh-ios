@@ -95,8 +95,9 @@ struct ChatHomeView: View {
 
     private func channelRow(_ c: ChatChannel) -> some View {
         HStack(spacing: 12) {
-            Text(ChannelIcon.emoji(slug: c.slug, kind: c.kind))
-                .font(.body)
+            Image(systemName: ChannelIcon.symbol(slug: c.slug, kind: c.kind))
+                .font(.system(size: 15))
+                .foregroundStyle(iconTint(c))
                 .frame(width: 30, height: 30)
                 .background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
             VStack(alignment: .leading, spacing: 1) {
@@ -111,6 +112,14 @@ struct ChatHomeView: View {
             }
         }
         .padding(.vertical, 2)
+    }
+
+    /// Accent the special channels; everything else uses the secondary tint.
+    private func iconTint(_ c: ChatChannel) -> Color {
+        switch c.kind {
+        case "leaderboard", "starboard": return .yellow
+        default: return c.slug == "premium" ? Color.whooshGreen : .secondary
+        }
     }
 
     @ViewBuilder
