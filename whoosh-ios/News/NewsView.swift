@@ -13,6 +13,7 @@ struct NewsView: View {
     @State private var community: [WhooshEntry] = []
     @State private var mineEntries: [WhooshEntry] = []
     @State private var games: [Game] = []
+    @StateObject private var logos = LogoStore()
 
     var body: some View {
         NavigationStack {
@@ -24,7 +25,7 @@ struct NewsView: View {
 
                 // Live ESPN scoreboard, pinned across all modes (web parity).
                 if !games.isEmpty {
-                    ScoreTicker(games: games)
+                    ScoreTicker(games: games, logos: logos.images)
                         .padding(.bottom, 10)
                         .transition(.opacity)
                 }
@@ -51,6 +52,10 @@ struct NewsView: View {
         while !Task.isCancelled {
             if let g = try? await model.api.scores() {
                 withAnimation(.easeInOut) { games = g }
+                // Preload logos here (stable parent), not inside the animating
+                // marquee — see LogoStore for why.
+                let urls = g.flatMap { [$0.away.logo, $0.home.logo].compactMap { $0 } }
+                await logos.prefetch(urls)
             }
             try? await Task.sleep(for: .seconds(45))
         }

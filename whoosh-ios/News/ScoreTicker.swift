@@ -9,21 +9,34 @@ import SwiftUI
 /// Renders nothing when there are no games.
 struct ScoreTicker: View {
     let games: [Game]
+    /// Logos are preloaded by the parent (`LogoStore`) and rendered as static
+    /// images here — never loaded inside this animating view.
+    var logos: [String: UIImage] = [:]
     private let spacing: CGFloat = 8
     private let speed: CGFloat = 38       // points per second
     private let height: CGFloat = 72
 
-    @State private var offset: CGFloat = 0
     @State private var rowWidth: CGFloat = 0
+    @State private var start = Date()
 
     var body: some View {
-        GeometryReader { _ in
+        // Drive the scroll per-frame with TimelineView rather than a
+        // `.repeatForever` `.offset` animation. Model-interpolated offset
+        // animations carried the text but not the image layers (logos only
+        // snapped into place each loop and didn't glide). Recomputing a concrete
+        // offset every frame lays out text + logos together, so everything moves.
+        TimelineView(.animation) { timeline in
+            let period = rowWidth + spacing
+            let off: CGFloat = period > 0
+                ? -CGFloat((timeline.date.timeIntervalSince(start) * Double(speed))
+                    .truncatingRemainder(dividingBy: Double(period)))
+                : 0
             HStack(spacing: spacing) {
                 row
                 row
             }
             .fixedSize()
-            .offset(x: offset)
+            .offset(x: off)
             .background(
                 GeometryReader { g in
                     Color.clear
@@ -32,13 +45,14 @@ struct ScoreTicker: View {
                 }
             )
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: height)
         .clipped()
     }
 
     private var row: some View {
         HStack(spacing: spacing) {
-            ForEach(games) { ScoreCard(game: $0) }
+            ForEach(games) { ScoreCard(game: $0, logos: logos) }
         }
         .padding(.leading, spacing)
     }
@@ -48,15 +62,6 @@ struct ScoreTicker: View {
         let single = (width - spacing) / 2
         guard single > 0, abs(single - rowWidth) > 0.5 else { return }
         rowWidth = single
-        animate()
-    }
-
-    private func animate() {
-        let distance = rowWidth + spacing
-        offset = 0
-        withAnimation(.linear(duration: Double(distance) / Double(speed)).repeatForever(autoreverses: false)) {
-            offset = -distance
-        }
     }
 }
 
@@ -65,6 +70,7 @@ struct ScoreTicker: View {
 /// upcoming → kickoff time, final → "Final" with the loser dimmed).
 private struct ScoreCard: View {
     let game: Game
+    let logos: [String: UIImage]
     @Environment(\.openURL) private var openURL
 
     private var live: Bool { game.state == "in" }
@@ -98,7 +104,7 @@ private struct ScoreCard: View {
 
     private func teamRow(_ t: ScoreTeam, dim: Bool) -> some View {
         HStack(spacing: 6) {
-            TeamLogo(urlString: t.logo)
+            TeamLogo(image: t.logo.flatMap { logos[$0] })
             Text(t.abbr).font(.caption.weight(.bold))
             Spacer(minLength: 4)
             if showScores, let score = t.score {
@@ -123,30 +129,23 @@ private struct ScoreCard: View {
     private func num(_ s: String?) -> Int { Int(s ?? "") ?? 0 }
 }
 
-/// A team logo. Uses `AsyncImage` (which loads reliably on-device), but the
-/// marquee runs a `.repeatForever` animation that `AsyncImage`'s load
-/// transition would otherwise inherit — that's what made the logo flash in and
-/// then disappear instead of riding along with the card. `.transaction { …nil }`
-/// strips any inherited animation so the image just appears and glides.
+/// A team logo — purely presentational. The image is preloaded by `LogoStore`
+/// in the stable parent and handed in already decoded, so this is a static
+/// `Image` (or a placeholder circle while it's still loading). No async loading
+/// happens inside the animating marquee, which is what kept the logos from
+/// rendering/gliding before.
 private struct TeamLogo: View {
-    let urlString: String?
+    let image: UIImage?
     private let size: CGFloat = 18
 
     var body: some View {
         Group {
-            if let urlString, let url = URL(string: urlString) {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().aspectRatio(contentMode: .fit)
-                    } else {
-                        Circle().fill(Color(.tertiarySystemBackground))
-                    }
-                }
+            if let image {
+                Image(uiImage: image).resizable().aspectRatio(contentMode: .fit)
             } else {
                 Circle().fill(Color(.tertiarySystemBackground))
             }
         }
         .frame(width: size, height: size)
-        .transaction { $0.animation = nil }
     }
 }
