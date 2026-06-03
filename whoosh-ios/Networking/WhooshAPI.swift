@@ -37,6 +37,48 @@ actor WhooshAPI {
         try await post("/api/v1/account/profile", body: SetUsernameBody(username: username))
     }
 
+    // Wallet actions
+    func buyWB(amount: Double) async throws -> URL {
+        let r: CheckoutURL = try await post("/api/v1/wb/buy", body: BuyWBBody(amount: amount))
+        guard let u = URL(string: r.url) else { throw APIError.unknown }
+        return u
+    }
+    func transfer(recipient: String, amount: Double, memo: String?) async throws -> TransferResult {
+        try await post("/api/v1/wb/transfer", body: TransferBody(recipient: recipient, amount: amount, memo: memo))
+    }
+    func claimBonus() async throws -> BonusResult { try await postNoBody("/api/v1/wb/bonus") }
+    func activity() async throws -> [LedgerEntry] {
+        struct R: Decodable { let entries: [LedgerEntry] }
+        let r: R = try await get("/api/v1/wb/activity")
+        return r.entries
+    }
+
+    // Investing
+    func searchSymbols(_ q: String) async throws -> [SearchResult] {
+        let enc = q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        struct R: Decodable { let results: [SearchResult] }
+        let r: R = try await get("/api/v1/wb/search?q=\(enc)")
+        return r.results
+    }
+    func quote(_ symbol: String) async throws -> Quote {
+        let enc = symbol.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        return try await get("/api/v1/wb/quote?symbol=\(enc)")
+    }
+    func placeOrder(symbol: String, side: String, amount: Double?, shares: Double?) async throws -> InvestOrderResult {
+        try await post("/api/v1/wb/invest/order",
+                       body: InvestOrderBody(symbol: symbol, side: side, amount: amount, shares: shares))
+    }
+    func watchlist() async throws -> [WatchEntry] {
+        struct R: Decodable { let items: [WatchEntry] }
+        let r: R = try await get("/api/v1/wb/watchlist")
+        return r.items
+    }
+    func mutateWatchlist(symbol: String, add: Bool) async throws {
+        struct R: Decodable { let symbol: String }
+        let _: R = try await post("/api/v1/wb/watchlist",
+                                  body: WatchlistMutateBody(symbol: symbol, action: add ? "add" : "remove"))
+    }
+
     func uploadAvatar(imageData: Data, fileName: String = "avatar.jpg",
                       mimeType: String = "image/jpeg") async throws -> AvatarResult {
         var req = await request("POST", "/api/v1/account/avatar")
@@ -63,6 +105,10 @@ actor WhooshAPI {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONEncoder().encode(body)
         return try await send(req)
+    }
+
+    private func postNoBody<T: Decodable>(_ path: String) async throws -> T {
+        try await send(await request("POST", path))
     }
 
     private func request(_ method: String, _ path: String) async -> URLRequest {

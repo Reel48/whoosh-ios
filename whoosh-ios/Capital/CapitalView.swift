@@ -11,6 +11,10 @@ struct CapitalView: View {
     @State private var error: String?
     @State private var loaded = false
     @State private var balanceHidden = false
+    @State private var showBuy = false
+    @State private var showTransfer = false
+    @State private var claimingBonus = false
+    @State private var bonusMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -18,9 +22,22 @@ struct CapitalView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     if !ticker.isEmpty { TickerStrip(quotes: ticker) }
                     balanceHero
+                    actionsRow
                     EquityChart(series: dashboard?.balanceSeries ?? [])
                         .padding(.horizontal)
                     allocationStrip
+                    NavigationLink {
+                        InvestView()
+                    } label: {
+                        HStack {
+                            Label("Invest", systemImage: "chart.line.uptrend.xyaxis")
+                            Spacer()
+                            Image(systemName: "chevron.right").foregroundStyle(.tertiary)
+                        }
+                        .padding().background(Color(.secondarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 12)).padding(.horizontal)
+                    }
+                    .buttonStyle(.plain)
                     positionsSection
                     if let error { Text(error).foregroundStyle(.red).font(.footnote).padding(.horizontal) }
                 }
@@ -29,7 +46,65 @@ struct CapitalView: View {
             .navigationTitle("Capital")
             .refreshable { await load(haptic: true) }
             .task { if !loaded { await load(); loaded = true } }
+            .sheet(isPresented: $showBuy) { BuyWBSheet() }
+            .sheet(isPresented: $showTransfer) { TransferSheet(onSent: { Task { await load() } }) }
+            .alert("Daily bonus", isPresented: Binding(get: { bonusMessage != nil },
+                                                       set: { if !$0 { bonusMessage = nil } })) {
+                Button("Nice") { bonusMessage = nil }
+            } message: { Text(bonusMessage ?? "") }
         }
+    }
+
+    // MARK: Actions row
+
+    private var actionsRow: some View {
+        HStack(spacing: 12) {
+            actionButton("Add", "plus") { showBuy = true }
+            actionButton("Send", "paperplane.fill") { showTransfer = true }
+            actionButton("Bonus", "gift.fill", busy: claimingBonus) { Task { await claimBonus() } }
+            NavigationLink {
+                ActivityView()
+            } label: {
+                actionLabel("Activity", "list.bullet")
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal)
+    }
+
+    private func actionButton(_ title: String, _ icon: String, busy: Bool = false,
+                              _ tap: @escaping () -> Void) -> some View {
+        Button(action: tap) {
+            if busy { ProgressView().frame(maxWidth: .infinity).padding(.vertical, 14)
+                .background(Color(.secondarySystemBackground)).clipShape(RoundedRectangle(cornerRadius: 12)) }
+            else { actionLabel(title, icon) }
+        }
+        .buttonStyle(.plain)
+        .disabled(busy)
+    }
+
+    private func actionLabel(_ title: String, _ icon: String) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon).font(.body)
+            Text(title).font(.caption)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 12)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func claimBonus() async {
+        claimingBonus = true
+        defer { claimingBonus = false }
+        do {
+            let r = try await model.api.claimBonus()
+            UINotificationFeedbackGenerator().notificationOccurred(r.claimed ? .success : .warning)
+            bonusMessage = r.claimed
+                ? "You claimed \(Money.wb(r.amountCents)) — \(r.streak)-day streak! 🔥"
+                : "You've already claimed today's bonus."
+            await load()
+        } catch let e as APIError { bonusMessage = e.message }
+        catch { bonusMessage = error.localizedDescription }
     }
 
     // MARK: Balance hero

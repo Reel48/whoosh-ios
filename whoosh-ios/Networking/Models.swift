@@ -114,3 +114,55 @@ struct TickerQuote: Decodable, Sendable, Identifiable {
     let changePct: Double
     var id: String { symbol }
 }
+
+// MARK: - Wallet actions
+
+struct LedgerEntry: Decodable, Sendable, Identifiable {
+    let id: Int
+    let amountCents: Int
+    let kind: String
+    let memo: String?
+    let createdAt: String
+}
+
+struct TransferResult: Decodable, Sendable { let transferId: Int }
+struct BonusResult: Decodable, Sendable { let claimed: Bool; let amountCents: Int; let streak: Int }
+struct CheckoutURL: Decodable, Sendable { let url: String }
+
+struct BuyWBBody: Encodable { let amount: Double }
+struct TransferBody: Encodable { let recipient: String; let amount: Double; let memo: String? }
+
+// MARK: - Investing
+
+struct SearchResult: Decodable, Sendable, Identifiable {
+    let symbol: String
+    let name: String
+    let kind: String          // "stock" | "crypto"
+    var id: String { symbol }
+}
+
+struct Quote: Decodable, Sendable {
+    let symbol: String
+    let priceCents: Int
+    let prevCloseCents: Int?
+    var dayChangeCents: Int? {
+        guard let prev = prevCloseCents else { return nil }
+        return priceCents - prev
+    }
+}
+
+struct InvestOrderResult: Decodable, Sendable { let orderId: Int; let totalCents: Int }
+
+struct WatchEntry: Decodable, Sendable, Identifiable {
+    let symbol: String
+    let addedAt: String
+    var id: String { symbol }
+}
+
+struct InvestOrderBody: Encodable {
+    let symbol: String
+    let side: String          // "buy" | "sell"
+    let amount: Double?       // USD amount; or
+    let shares: Double?       // explicit share count
+}
+struct WatchlistMutateBody: Encodable { let symbol: String; let action: String }  // add | remove
