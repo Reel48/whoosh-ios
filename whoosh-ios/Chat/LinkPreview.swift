@@ -1,11 +1,11 @@
 import SwiftUI
 import LinkPresentation
-import UniformTypeIdentifiers
 
 /// A rich preview for a single URL in a chat message. Direct image links render
-/// inline; everything else uses Apple's `LinkPresentation` (so YouTube shows a
-/// thumbnail, articles their OG image, X the post, etc.). Metadata is fetched
-/// once per URL and cached. Tapping opens the link via the system.
+/// inline; everything else builds a custom card from `LPLinkMetadata` — the
+/// preview image is shown at its **natural aspect ratio**, full message-column
+/// width (a YouTube link looks like a 16:9 video, an article shows its full OG
+/// image), with a title/host footer. Tapping opens the link via the system.
 struct LinkPreview: View {
     let url: URL
     @Environment(\.openURL) private var openURL
@@ -15,46 +15,95 @@ struct LinkPreview: View {
 
     var body: some View {
         if isImage {
-            // Show the whole image, as large as the column allows.
             AsyncImage(url: url) { img in
                 img.resizable().scaledToFit()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 14).fill(Color(.secondarySystemBackground)).frame(height: 160)
             }
-            .frame(maxWidth: .infinity, maxHeight: 320, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: 380, alignment: .leading)
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .contentShape(RoundedRectangle(cornerRadius: 14))
             .onTapGesture { openURL(url) }
             .padding(.top, 4)
         } else {
-            LinkMetadataView(url: url)
+            LinkCard(url: url)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 4)
         }
     }
 }
 
-/// Wraps `LPLinkView`, driving it from cached/fetched `LPLinkMetadata`. Falls
-/// back to a simple tappable chip while loading or if metadata can't be fetched.
-private struct LinkMetadataView: View {
+/// Custom embed built from fetched metadata: big image at its real aspect ratio
+/// + title/host footer. Falls back to a tappable chip while loading / on failure.
+private struct LinkCard: View {
     let url: URL
     @State private var metadata: LPLinkMetadata?
+    @State private var image: UIImage?
     @State private var failed = false
+    @Environment(\.openURL) private var openURL
+
+    private var isVideo: Bool {
+        let h = (url.host ?? "").lowercased()
+        return ["youtube", "youtu.be", "vimeo", "twitch", "tiktok"].contains { h.contains($0) }
+    }
 
     var body: some View {
         Group {
             if let metadata {
-                LPLinkViewRepresentable(metadata: metadata)
+                card(metadata)
             } else if failed {
                 LinkChip(url: url)
             } else {
                 LinkChip(url: url, loading: true)
             }
         }
-        .task(id: url) {
-            if let cached = LinkMetadataCache.shared.cached(url) { metadata = cached; return }
-            if let fetched = await LinkMetadataCache.shared.fetch(url) { metadata = fetched }
-            else { failed = true }
+        .task(id: url) { await loadMetadata() }
+    }
+
+    private func card(_ md: LPLinkMetadata) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let image {
+                ZStack {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(image.size.width / max(image.size.height, 1), contentMode: .fit)
+                    if isVideo {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 46))
+                            .foregroundStyle(.white.opacity(0.95))
+                            .shadow(color: .black.opacity(0.4), radius: 6)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(md.title ?? url.host ?? url.absoluteString)
+                    .font(.subheadline.weight(.semibold)).lineLimit(2).multilineTextAlignment(.leading)
+                Text(url.host ?? url.absoluteString).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12).padding(.vertical, 10)
+        }
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture { openURL(url) }
+    }
+
+    private func loadMetadata() async {
+        var md = LinkMetadataCache.shared.cached(url)
+        if md == nil { md = await LinkMetadataCache.shared.fetch(url) }
+        guard let md else { failed = true; return }
+        metadata = md
+        if let provider = md.imageProvider ?? md.iconProvider {
+            image = await Self.loadImage(provider)
+        }
+    }
+
+    private static func loadImage(_ provider: NSItemProvider) async -> UIImage? {
+        guard provider.canLoadObject(ofClass: UIImage.self) else { return nil }
+        return await withCheckedContinuation { cont in
+            provider.loadObject(ofClass: UIImage.self) { obj, _ in cont.resume(returning: obj as? UIImage) }
         }
     }
 }
@@ -84,32 +133,6 @@ private struct LinkChip: View {
     }
 }
 
-/// `LPLinkView` is self-sizing; we bound its width and let it report height.
-private struct LPLinkViewRepresentable: UIViewRepresentable {
-    let metadata: LPLinkMetadata
-
-    func makeUIView(context: Context) -> LPLinkView {
-        let view = LPLinkView(metadata: metadata)
-        view.setContentHuggingPriority(.required, for: .vertical)
-        view.setContentCompressionResistancePriority(.required, for: .vertical)
-        return view
-    }
-
-    func updateUIView(_ uiView: LPLinkView, context: Context) {
-        uiView.metadata = metadata
-    }
-
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView: LPLinkView, context: Context) -> CGSize? {
-        // Fill the available message-column width (capped for iPad) so the embed
-        // shows as much content as possible.
-        let width = min(proposal.width ?? 320, 360)
-        let fit = uiView.systemLayoutSizeFitting(
-            CGSize(width: width, height: UIView.layoutFittingCompressedSize.height),
-            withHorizontalFittingPriority: .required, verticalFittingPriority: .fittingSizeLevel)
-        return CGSize(width: width, height: fit.height)
-    }
-}
-
 /// Process-wide metadata cache with in-flight de-duplication.
 actor LinkMetadataCache {
     static let shared = LinkMetadataCache()
@@ -126,9 +149,7 @@ actor LinkMetadataCache {
         let task = Task<LPLinkMetadata?, Never> {
             await withCheckedContinuation { (cont: CheckedContinuation<LPLinkMetadata?, Never>) in
                 let provider = LPMetadataProvider()
-                provider.startFetchingMetadata(for: url) { meta, _ in
-                    cont.resume(returning: meta)
-                }
+                provider.startFetchingMetadata(for: url) { meta, _ in cont.resume(returning: meta) }
             }
         }
         inFlight[url] = task
