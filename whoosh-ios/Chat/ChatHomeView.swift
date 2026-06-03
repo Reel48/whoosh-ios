@@ -18,26 +18,29 @@ struct ChatHomeView: View {
 
                 Group {
                     if let overview {
-                        List {
-                            Section { hero(overview.me) }
-                                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                                .listRowBackground(Color.clear)
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 0) {
+                                hero(overview.me).padding(.horizontal, 16).padding(.bottom, 8)
 
-                            ForEach(overview.categories) { category in
-                                Section {
-                                    ForEach(category.channels) { channel in
-                                        NavigationLink { destination(channel) } label: { channelRow(channel) }
-                                    }
-                                } header: {
+                                ForEach(overview.categories) { category in
                                     Text(category.name)
                                         .font(.caption.weight(.bold))
                                         .foregroundStyle(.secondary)
                                         .textCase(.uppercase)
-                                        .kerning(0.5)
+                                        .kerning(0.6)
+                                        .padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 8)
+
+                                    VStack(spacing: 8) {
+                                        ForEach(category.channels) { channel in
+                                            NavigationLink { destination(channel) } label: { channelCard(channel) }
+                                                .buttonStyle(.plain)
+                                        }
+                                    }
+                                    .padding(.horizontal, 16)
                                 }
                             }
+                            .padding(.bottom, 24)
                         }
-                        .listStyle(.insetGrouped)
                     } else if loaded {
                         ContentUnavailableView("Chat unavailable", systemImage: "bubble.left.and.bubble.right",
                                                description: Text(error ?? "Try again later."))
@@ -93,33 +96,29 @@ struct ChatHomeView: View {
 
     // MARK: Channel row
 
-    private func channelRow(_ c: ChatChannel) -> some View {
-        HStack(spacing: 12) {
+    /// A standalone channel card — spaced apart so categories don't read as one
+    /// dense block. All icons share the same neutral tint.
+    private func channelCard(_ c: ChatChannel) -> some View {
+        HStack(spacing: 13) {
             Image(systemName: ChannelIcon.symbol(slug: c.slug, kind: c.kind))
-                .font(.system(size: 15))
-                .foregroundStyle(iconTint(c))
-                .frame(width: 30, height: 30)
-                .background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+                .font(.system(size: 16))
+                .foregroundStyle(.secondary)
+                .frame(width: 34, height: 34)
+                .background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 9))
             VStack(alignment: .leading, spacing: 1) {
-                Text(c.name).font(.body)
+                Text(c.name).font(.body.weight(.medium)).foregroundStyle(.primary)
                 if let d = c.description, !d.isEmpty {
                     Text(d).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 }
             }
-            Spacer()
+            Spacer(minLength: 8)
             if c.requiredRoleId != nil {
                 Image(systemName: "lock.fill").font(.caption2).foregroundStyle(.tertiary)
             }
+            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
         }
-        .padding(.vertical, 2)
-    }
-
-    /// Accent the special channels; everything else uses the secondary tint.
-    private func iconTint(_ c: ChatChannel) -> Color {
-        switch c.kind {
-        case "leaderboard", "starboard": return .yellow
-        default: return c.slug == "premium" ? Color.whooshGreen : .secondary
-        }
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
     }
 
     @ViewBuilder
