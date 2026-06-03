@@ -11,7 +11,7 @@ struct ScoreTicker: View {
     let games: [Game]
     private let spacing: CGFloat = 8
     private let speed: CGFloat = 38       // points per second
-    private let height: CGFloat = 66
+    private let height: CGFloat = 72
 
     @State private var offset: CGFloat = 0
     @State private var rowWidth: CGFloat = 0
@@ -71,7 +71,7 @@ private struct ScoreCard: View {
     private var showScores: Bool { game.state != "pre" }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 5) {
             teamRow(game.away, dim: awayDim)
             teamRow(game.home, dim: homeDim)
             HStack(spacing: 4) {
@@ -87,10 +87,9 @@ private struct ScoreCard: View {
                     .foregroundStyle(live ? Color.red : .secondary)
                     .lineLimit(1)
             }
-            .padding(.top, 1)
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
-        .frame(width: 162, height: 60)
+        .padding(.horizontal, 12).padding(.vertical, 9)
+        .frame(width: 160, alignment: .leading)   // fixed width, intrinsic height (no clipping)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .contentShape(RoundedRectangle(cornerRadius: 12))
@@ -98,13 +97,8 @@ private struct ScoreCard: View {
     }
 
     private func teamRow(_ t: ScoreTeam, dim: Bool) -> some View {
-        HStack(spacing: 5) {
-            if let s = t.logo, let url = URL(string: s) {
-                AsyncImage(url: url) { img in img.resizable().scaledToFit() } placeholder: { Color.clear }
-                    .frame(width: 16, height: 16)
-            } else {
-                Color.clear.frame(width: 16, height: 16)
-            }
+        HStack(spacing: 6) {
+            TeamLogo(urlString: t.logo)
             Text(t.abbr).font(.caption.weight(.bold))
             Spacer(minLength: 4)
             if showScores, let score = t.score {
@@ -127,4 +121,59 @@ private struct ScoreCard: View {
     private var awayDim: Bool { game.state == "post" && num(game.home.score) > num(game.away.score) }
     private var homeDim: Bool { game.state == "post" && num(game.away.score) > num(game.home.score) }
     private func num(_ s: String?) -> Int { Int(s ?? "") ?? 0 }
+}
+
+import UIKit
+
+/// A team logo rendered as a **static** `Image`, not `AsyncImage`. The marquee
+/// runs a `.repeatForever` animation, and `AsyncImage` (which has no cache and
+/// reloads whenever the view re-evaluates) flickers and resets to its
+/// placeholder under that animation. We instead load the bytes once through a
+/// shared in-memory cache and commit the result with animations disabled, so
+/// the logo simply rides along with the gliding card.
+private struct TeamLogo: View {
+    let urlString: String?
+    private let size: CGFloat = 18
+    @State private var image: UIImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image).resizable().aspectRatio(contentMode: .fit)
+            } else {
+                Circle().fill(Color(.tertiarySystemBackground))
+            }
+        }
+        .frame(width: size, height: size)
+        .task(id: urlString) { await load() }
+    }
+
+    private func load() async {
+        guard let urlString, let url = URL(string: urlString) else { return }
+        if let cached = LogoCache.shared.image(for: urlString) {
+            image = cached
+            return
+        }
+        guard let img = await LogoCache.shared.fetch(url: url, key: urlString) else { return }
+        // Commit without inheriting the marquee's repeatForever animation.
+        var tx = Transaction(); tx.disablesAnimations = true
+        withTransaction(tx) { image = img }
+    }
+}
+
+/// Process-wide logo cache. Decodes once per URL; subsequent cards reuse it
+/// (the marquee renders each row twice, so this halves the network work).
+private final class LogoCache: @unchecked Sendable {
+    static let shared = LogoCache()
+    private let cache = NSCache<NSString, UIImage>()
+
+    func image(for key: String) -> UIImage? { cache.object(forKey: key as NSString) }
+
+    func fetch(url: URL, key: String) async -> UIImage? {
+        if let hit = image(for: key) { return hit }
+        guard let (data, _) = try? await URLSession.shared.data(from: url),
+              let img = UIImage(data: data) else { return nil }
+        cache.setObject(img, forKey: key as NSString)
+        return img
+    }
 }

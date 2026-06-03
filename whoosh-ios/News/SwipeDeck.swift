@@ -8,9 +8,6 @@ struct SwipeDeck: View {
     @Binding var articles: [Article]
     /// League label shown on each card (e.g. "NFL").
     var sportLabel: String? = nil
-    /// Fixed card height — keeps the deck compact rather than stretching to fill
-    /// (so it leaves room for the scoreboard above). Tune against the simulator.
-    var cardHeight: CGFloat = 460
     /// Called when the top card is decided. `direction` is "right" (keep) / "left" (pass).
     var onDecide: (Article, String) async -> Void
     /// Undo the most recent decision (re-inserts the card).
@@ -22,7 +19,9 @@ struct SwipeDeck: View {
     private let threshold: CGFloat = 110
 
     var body: some View {
-        VStack(spacing: 16) {
+        // Fill the available space (so the deck never overflows past the safe
+        // area into the tab bar) and leave clear clearance below the controls.
+        VStack(spacing: 14) {
             ZStack {
                 if articles.isEmpty {
                     emptyState
@@ -32,13 +31,12 @@ struct SwipeDeck: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: cardHeight)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             controls
-                .padding(.bottom, 8)
-            Spacer(minLength: 0)
         }
+        .frame(maxHeight: .infinity)
+        .padding(.bottom, 12)
     }
 
     // MARK: Cards
