@@ -20,32 +20,34 @@ struct ScoreTicker: View {
     @State private var start = Date()
 
     var body: some View {
-        // Drive the scroll per-frame with TimelineView rather than a
-        // `.repeatForever` `.offset` animation. Model-interpolated offset
-        // animations carried the text but not the image layers (logos only
-        // snapped into place each loop and didn't glide). Recomputing a concrete
-        // offset every frame lays out text + logos together, so everything moves.
-        TimelineView(.animation) { timeline in
-            let period = rowWidth + spacing
-            let off: CGFloat = period > 0
-                ? -CGFloat((timeline.date.timeIntervalSince(start) * Double(speed))
-                    .truncatingRemainder(dividingBy: Double(period)))
-                : 0
-            HStack(spacing: spacing) {
-                row
-                row
-            }
-            .fixedSize()
-            .offset(x: off)
-            .background(
-                GeometryReader { g in
-                    Color.clear
-                        .onAppear { measure(g.size.width) }
-                        .onChange(of: g.size.width) { _, w in measure(w) }
+        // The outer GeometryReader bounds the strip to the container width — the
+        // doubled, `.fixedSize()` HStack is far wider than the screen, and
+        // without this it propagates that width up and stretches the whole page
+        // (the title/picker break). Inside, TimelineView drives the scroll
+        // per-frame so text AND the static logo images glide together (a
+        // `.repeatForever` `.offset` animation moved the text but not the logos).
+        GeometryReader { _ in
+            TimelineView(.animation) { timeline in
+                let period = rowWidth + spacing
+                let off: CGFloat = period > 0
+                    ? -CGFloat((timeline.date.timeIntervalSince(start) * Double(speed))
+                        .truncatingRemainder(dividingBy: Double(period)))
+                    : 0
+                HStack(spacing: spacing) {
+                    row
+                    row
                 }
-            )
+                .fixedSize()
+                .offset(x: off)
+                .background(
+                    GeometryReader { g in
+                        Color.clear
+                            .onAppear { measure(g.size.width) }
+                            .onChange(of: g.size.width) { _, w in measure(w) }
+                    }
+                )
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: height)
         .clipped()
     }
