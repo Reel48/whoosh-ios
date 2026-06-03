@@ -12,6 +12,7 @@ final class AppModel: ObservableObject {
 
     let auth = SupabaseAuth()
     lazy var api = WhooshAPI(token: { [auth] in await auth.currentAccessToken() })
+    lazy var realtime = RealtimeClient(token: { [auth] in await auth.currentAccessToken() })
 
     /// Initial launch: keep the splash up for at least 2s while we resolve where
     /// to go (sign-in / onboarding / home).

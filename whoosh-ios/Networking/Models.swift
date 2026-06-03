@@ -55,6 +55,77 @@ struct EarnedAchievement: Decodable, Sendable, Identifiable {
 /// POST /api/v1/checkout body — premium subscription interval.
 struct SubscribeBody: Encodable { let interval: String }   // monthly | six_months | annual
 
+// MARK: - Chat
+
+struct ChatRole: Decodable, Sendable, Identifiable {
+    let id: Int; let key: String; let name: String; let color: String; let priority: Int
+}
+
+struct ChatChannel: Decodable, Sendable, Identifiable {
+    let id: Int
+    let categoryId: Int
+    let slug: String
+    let name: String
+    let description: String?
+    let kind: String        // text | media | leaderboard | starboard
+    let postPolicy: String  // members | admins | system
+    let requiredRoleId: Int?
+    let canPost: Bool
+}
+
+struct ChatCategory: Decodable, Sendable, Identifiable {
+    let id: Int; let name: String; let position: Int; let channels: [ChatChannel]
+}
+
+struct ChatAuthor: Decodable, Sendable, Identifiable {
+    let id: String; let username: String; let avatarUrl: String?; let level: Int; let roleColor: String
+}
+
+struct ChatReactionSummary: Decodable, Sendable, Identifiable {
+    let emoji: String; let count: Int; let mine: Bool
+    var id: String { emoji }
+}
+
+struct ChatMessage: Decodable, Sendable, Identifiable {
+    let id: Int
+    let channelId: Int
+    let author: ChatAuthor
+    var body: String
+    let imageUrl: String?
+    let replyToId: Int?
+    var starCount: Int
+    var reactions: [ChatReactionSummary]
+    let mine: Bool
+    let createdAt: String
+    var editedAt: String?
+}
+
+struct ChatMe: Decodable, Sendable {
+    let userId: String; let level: Int; let xp: Int; let rank: Int; let roles: [ChatRole]
+}
+
+struct ChatOverview: Decodable, Sendable {
+    let categories: [ChatCategory]; let me: ChatMe
+}
+
+struct ChatLeaderboardRow: Decodable, Sendable, Identifiable {
+    let rank: Int; let user: ChatAuthor; let xp: Int; let level: Int; let messageCount: Int
+    var id: String { user.id }
+}
+
+struct ChatMember: Decodable, Sendable, Identifiable {
+    let id: String; let username: String; let avatarUrl: String?
+}
+
+struct SendChatMessageResult: Decodable, Sendable {
+    let message: ChatMessage; let level: Int; let leveledUp: Bool
+}
+
+struct SendChatMessageBody: Encodable { let body: String?; let imageUrl: String?; let replyTo: Int? }
+struct ChatReactBody: Encodable { let emoji: String; let on: Bool }
+struct ChatEditBody: Encodable { let body: String }
+struct ChatRoleAssignBody: Encodable { let userId: String; let roleId: Int; let on: Bool }
+
 struct UsernameAvailability: Decodable, Sendable {
     let available: Bool
     let normalized: String

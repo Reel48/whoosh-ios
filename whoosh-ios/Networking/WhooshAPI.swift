@@ -142,6 +142,78 @@ actor WhooshAPI {
         return r.games
     }
 
+    // Chat
+    func chatOverview() async throws -> ChatOverview { try await get("/api/v1/chat/overview") }
+    func chatMessages(channelId: Int, before: Int? = nil) async throws -> [ChatMessage] {
+        struct R: Decodable { let messages: [ChatMessage] }
+        var path = "/api/v1/chat/channels/\(channelId)/messages"
+        if let before { path += "?before=\(before)" }
+        let r: R = try await get(path)
+        return r.messages
+    }
+    @discardableResult
+    func sendChatMessage(channelId: Int, body: String?, imageUrl: String? = nil, replyTo: Int? = nil) async throws -> SendChatMessageResult {
+        try await post("/api/v1/chat/channels/\(channelId)/messages",
+                       body: SendChatMessageBody(body: body, imageUrl: imageUrl, replyTo: replyTo))
+    }
+    @discardableResult
+    func reactChat(messageId: Int, emoji: String, on: Bool) async throws -> Int {
+        struct R: Decodable { let count: Int }
+        let r: R = try await post("/api/v1/chat/messages/\(messageId)/react", body: ChatReactBody(emoji: emoji, on: on))
+        return r.count
+    }
+    func editChat(messageId: Int, body: String) async throws {
+        struct R: Decodable { let ok: Bool }
+        let _: R = try await patch("/api/v1/chat/messages/\(messageId)", body: ChatEditBody(body: body))
+    }
+    func deleteChat(messageId: Int) async throws {
+        struct R: Decodable { let ok: Bool }
+        let _: R = try await delete("/api/v1/chat/messages/\(messageId)")
+    }
+    func chatLeaderboard() async throws -> [ChatLeaderboardRow] {
+        struct R: Decodable { let rows: [ChatLeaderboardRow] }
+        let r: R = try await get("/api/v1/chat/leaderboard"); return r.rows
+    }
+    func chatStarboard() async throws -> [ChatMessage] {
+        struct R: Decodable { let messages: [ChatMessage] }
+        let r: R = try await get("/api/v1/chat/starboard"); return r.messages
+    }
+    func chatUsers(ids: [String]) async throws -> [ChatAuthor] {
+        struct R: Decodable { let users: [ChatAuthor] }
+        let q = ids.joined(separator: ",").addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let r: R = try await get("/api/v1/chat/users?ids=\(q)"); return r.users
+    }
+    func chatMembers(query: String) async throws -> [ChatMember] {
+        struct R: Decodable { let members: [ChatMember] }
+        let q = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let r: R = try await get("/api/v1/chat/members?q=\(q)"); return r.members
+    }
+    func chatRoles() async throws -> [ChatRole] {
+        struct R: Decodable { let roles: [ChatRole] }
+        let r: R = try await get("/api/v1/chat/admin/roles"); return r.roles
+    }
+    func assignChatRole(userId: String, roleId: Int, on: Bool) async throws {
+        struct R: Decodable { let ok: Bool }
+        let _: R = try await post("/api/v1/chat/admin/roles/assign", body: ChatRoleAssignBody(userId: userId, roleId: roleId, on: on))
+    }
+    /// Upload a chat image (multipart) → public URL.
+    func uploadChatImage(imageData: Data, fileName: String = "image.jpg", mimeType: String = "image/jpeg") async throws -> URL {
+        struct R: Decodable { let url: String }
+        var req = await request("POST", "/api/v1/chat/upload")
+        let boundary = "Boundary-\(UUID().uuidString)"
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        var body = Data()
+        body.append("--\(boundary)\r\n")
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n")
+        body.append("Content-Type: \(mimeType)\r\n\r\n")
+        body.append(imageData)
+        body.append("\r\n--\(boundary)--\r\n")
+        req.httpBody = body
+        let r: R = try await send(req)
+        guard let u = URL(string: r.url) else { throw APIError.unknown }
+        return u
+    }
+
     // Fantasy
     func fantasyOverview() async throws -> FantasyOverview { try await get("/api/v1/fantasy/overview") }
     func fantasyRankings() async throws -> CrossLeagueScoreboard { try await get("/api/v1/fantasy/rankings") }
@@ -217,6 +289,17 @@ actor WhooshAPI {
 
     private func postNoBody<T: Decodable>(_ path: String) async throws -> T {
         try await send(await request("POST", path))
+    }
+
+    private func patch<T: Decodable>(_ path: String, body: some Encodable) async throws -> T {
+        var req = await request("PATCH", path)
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONEncoder().encode(body)
+        return try await send(req)
+    }
+
+    private func delete<T: Decodable>(_ path: String) async throws -> T {
+        try await send(await request("DELETE", path))
     }
 
     private func request(_ method: String, _ path: String) async -> URLRequest {
