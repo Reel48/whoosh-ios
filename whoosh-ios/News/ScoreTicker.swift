@@ -123,57 +123,30 @@ private struct ScoreCard: View {
     private func num(_ s: String?) -> Int { Int(s ?? "") ?? 0 }
 }
 
-import UIKit
-
-/// A team logo rendered as a **static** `Image`, not `AsyncImage`. The marquee
-/// runs a `.repeatForever` animation, and `AsyncImage` (which has no cache and
-/// reloads whenever the view re-evaluates) flickers and resets to its
-/// placeholder under that animation. We instead load the bytes once through a
-/// shared in-memory cache and commit the result with animations disabled, so
-/// the logo simply rides along with the gliding card.
+/// A team logo. Uses `AsyncImage` (which loads reliably on-device), but the
+/// marquee runs a `.repeatForever` animation that `AsyncImage`'s load
+/// transition would otherwise inherit — that's what made the logo flash in and
+/// then disappear instead of riding along with the card. `.transaction { …nil }`
+/// strips any inherited animation so the image just appears and glides.
 private struct TeamLogo: View {
     let urlString: String?
     private let size: CGFloat = 18
-    @State private var image: UIImage?
 
     var body: some View {
         Group {
-            if let image {
-                Image(uiImage: image).resizable().aspectRatio(contentMode: .fit)
+            if let urlString, let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().aspectRatio(contentMode: .fit)
+                    } else {
+                        Circle().fill(Color(.tertiarySystemBackground))
+                    }
+                }
             } else {
                 Circle().fill(Color(.tertiarySystemBackground))
             }
         }
         .frame(width: size, height: size)
-        .task(id: urlString) { await load() }
-    }
-
-    private func load() async {
-        guard let urlString, let url = URL(string: urlString) else { return }
-        if let cached = LogoCache.shared.image(for: urlString) {
-            image = cached
-            return
-        }
-        guard let img = await LogoCache.shared.fetch(url: url, key: urlString) else { return }
-        // Commit without inheriting the marquee's repeatForever animation.
-        var tx = Transaction(); tx.disablesAnimations = true
-        withTransaction(tx) { image = img }
-    }
-}
-
-/// Process-wide logo cache. Decodes once per URL; subsequent cards reuse it
-/// (the marquee renders each row twice, so this halves the network work).
-private final class LogoCache: @unchecked Sendable {
-    static let shared = LogoCache()
-    private let cache = NSCache<NSString, UIImage>()
-
-    func image(for key: String) -> UIImage? { cache.object(forKey: key as NSString) }
-
-    func fetch(url: URL, key: String) async -> UIImage? {
-        if let hit = image(for: key) { return hit }
-        guard let (data, _) = try? await URLSession.shared.data(from: url),
-              let img = UIImage(data: data) else { return nil }
-        cache.setObject(img, forKey: key as NSString)
-        return img
+        .transaction { $0.animation = nil }
     }
 }
