@@ -37,7 +37,10 @@ struct MessageRow: View {
                     }
                 }
                 if !message.body.isEmpty {
-                    Text(Self.styledBody(message.body)).font(.body)
+                    Text(Self.styledBody(message.body)).font(.body).tint(Color.whooshGreen)
+                }
+                if let link = Self.firstLink(in: message.body) {
+                    LinkPreview(url: link)
                 }
                 if let urlStr = message.imageUrl, let url = URL(string: urlStr) {
                     AsyncImage(url: url) { img in img.resizable().scaledToFill() } placeholder: {
@@ -74,27 +77,53 @@ struct MessageRow: View {
         }
     }
 
-    /// Tint `@mentions` in the brand green by concatenating styled segments
-    /// (no String↔AttributedString index casting).
+    private static let linkDetector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+    private static let mentionRegex = try? NSRegularExpression(pattern: "@[A-Za-z0-9_]{3,20}")
+
+    private enum Token { case link(URL), mention }
+
+    /// Build the message body as an `AttributedString`, tinting `@mentions` and
+    /// turning URLs into tappable `.link` runs (links open via the system). Done
+    /// by concatenating styled segments — no String↔AttributedString index
+    /// casting, and link ranges take precedence over overlapping mentions.
     private static func styledBody(_ text: String) -> AttributedString {
-        guard let re = try? NSRegularExpression(pattern: "@[A-Za-z0-9_]{3,20}") else { return AttributedString(text) }
         let ns = text as NSString
-        let matches = re.matches(in: text, range: NSRange(location: 0, length: ns.length))
-        guard !matches.isEmpty else { return AttributedString(text) }
+        let full = NSRange(location: 0, length: ns.length)
+        var tokens: [(NSRange, Token)] = []
+        linkDetector?.matches(in: text, range: full).forEach { m in
+            if let u = m.url { tokens.append((m.range, .link(u))) }
+        }
+        mentionRegex?.matches(in: text, range: full).forEach { tokens.append(($0.range, .mention)) }
+        guard !tokens.isEmpty else { return AttributedString(text) }
+        tokens.sort { $0.0.location < $1.0.location }
+
         var result = AttributedString()
         var idx = 0
-        for m in matches {
-            if m.range.location > idx {
-                result += AttributedString(ns.substring(with: NSRange(location: idx, length: m.range.location - idx)))
+        for (range, token) in tokens {
+            if range.location < idx { continue } // skip overlap (link already consumed it)
+            if range.location > idx {
+                result += AttributedString(ns.substring(with: NSRange(location: idx, length: range.location - idx)))
             }
-            var mention = AttributedString(ns.substring(with: m.range))
-            mention.foregroundColor = Color.whooshGreen
-            mention.font = .body.weight(.semibold)
-            result += mention
-            idx = m.range.location + m.range.length
+            var seg = AttributedString(ns.substring(with: range))
+            switch token {
+            case .link(let u):
+                seg.link = u
+                seg.foregroundColor = Color.whooshGreen
+            case .mention:
+                seg.foregroundColor = Color.whooshGreen
+                seg.font = .body.weight(.semibold)
+            }
+            result += seg
+            idx = range.location + range.length
         }
         if idx < ns.length { result += AttributedString(ns.substring(from: idx)) }
         return result
+    }
+
+    /// The first URL in the message body, for the rich preview card.
+    static func firstLink(in text: String) -> URL? {
+        let ns = text as NSString
+        return linkDetector?.firstMatch(in: text, range: NSRange(location: 0, length: ns.length))?.url
     }
 }
 
