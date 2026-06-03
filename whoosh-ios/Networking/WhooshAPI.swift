@@ -136,6 +136,30 @@ actor WhooshAPI {
         return r.points
     }
 
+    // Fantasy
+    func fantasyOverview() async throws -> FantasyOverview { try await get("/api/v1/fantasy/overview") }
+    func fantasyRankings() async throws -> CrossLeagueScoreboard { try await get("/api/v1/fantasy/rankings") }
+    func fantasyMatchups() async throws -> MatchupsResponse { try await get("/api/v1/fantasy/matchups") }
+    func fantasyLeague(_ id: String) async throws -> LeagueDetailResponse {
+        try await get("/api/v1/fantasy/leagues/\(id)")
+    }
+    func fantasyPools() async throws -> [PoolSummary] {
+        struct R: Decodable { let pools: [PoolSummary] }
+        let r: R = try await get("/api/v1/fantasy/pools")
+        return r.pools
+    }
+    func fantasyPool(_ id: String) async throws -> PoolDetail { try await get("/api/v1/fantasy/pools/\(id)") }
+    @discardableResult
+    func linkSleeper(username: String) async throws -> FantasyLink? {
+        struct R: Decodable { let link: FantasyLink? }
+        let r: R = try await post("/api/v1/fantasy/link", body: LinkSleeperBody(username: username, action: nil))
+        return r.link
+    }
+    func unlinkSleeper() async throws {
+        struct R: Decodable { let link: FantasyLink? }
+        let _: R = try await post("/api/v1/fantasy/link", body: LinkSleeperBody(username: nil, action: "unlink"))
+    }
+
     func uploadAvatar(imageData: Data, fileName: String = "avatar.jpg",
                       mimeType: String = "image/jpeg") async throws -> AvatarResult {
         var req = await request("POST", "/api/v1/account/avatar")
