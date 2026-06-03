@@ -1,0 +1,35 @@
+# Xcode / Swift — keep build artifacts and user state out of git.
+
+## macOS
+.DS_Store
+
+## Xcode user data & build
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+DerivedData/
+build/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+## Playgrounds / misc
+timeline.xctimeline
+playground.xcworkspace
+
+## CocoaPods / Carthage (unused now, ignored if added later)
+Pods/
+Carthage/Build/
+
+## Fastlane (if added later)
+fastlane/report.xml
+fastlane/screenshots/**/*.png
+fastlane/test_output

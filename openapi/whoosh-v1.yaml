@@ -1,0 +1,3542 @@
+openapi: 3.1.0
+info:
+  title: Whoosh API
+  version: 1.0.0
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+  description: Client-agnostic JSON API for the Whoosh app (web + iOS). Every
+    response is a `{ ok, data }` / `{ ok, error }` envelope. Generated from
+    src/lib/api/contracts.ts — do not edit by hand (run `npm run openapi:gen`).
+servers:
+  - url: /
+    description: Same origin as the app deployment.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    PlaceWagerRequest:
+      type: object
+      properties:
+        eventId:
+          type: number
+        outcomeId:
+          type: number
+        stake:
+          type: number
+          description: Stake in whole Whoosh Bucks (converted to cents server-side).
+      required:
+        - eventId
+        - outcomeId
+        - stake
+      description: POST /api/v1/wb/wager — place a wager on an event outcome.
+    PlaceWagerResponse:
+      type: object
+      properties:
+        wagerId:
+          type: number
+      required:
+        - wagerId
+    WalletResponse:
+      $ref: "#/components/schemas/DashboardData"
+      description: GET /api/v1/wb/wallet — the signed-in user's Capital/WB dashboard.
+    DashboardData:
+      type: object
+      properties:
+        allocation:
+          $ref: "#/components/schemas/Allocation"
+        lifetime:
+          $ref: "#/components/schemas/LifetimeStats"
+        returns:
+          $ref: "#/components/schemas/ReturnsBreakdown"
+        positions:
+          type: array
+          items:
+            $ref: "#/components/schemas/EnrichedPosition"
+        balanceSeries:
+          type: array
+          items:
+            $ref: "#/components/schemas/BalanceSeriesPoint"
+        dayChangeCents:
+          type:
+            - number
+            - "null"
+          description: Today's market move across all holdings (sum of per-position day
+            change). Null when no holding has a previous-close to compare
+            against.
+      required:
+        - allocation
+        - lifetime
+        - returns
+        - positions
+        - balanceSeries
+        - dayChangeCents
+    Allocation:
+      type: object
+      properties:
+        cashCents:
+          type: number
+        investedValueCents:
+          type: number
+        investedCostBasisCents:
+          type: number
+        openWagersCents:
+          type: number
+        totalEquityCents:
+          type: number
+      required:
+        - cashCents
+        - investedValueCents
+        - investedCostBasisCents
+        - openWagersCents
+        - totalEquityCents
+    LifetimeStats:
+      type: object
+      properties:
+        totalPurchased:
+          type: number
+        totalPremiumMatch:
+          type: number
+        totalInterest:
+          type: number
+        totalTransferIn:
+          type: number
+        totalTransferOut:
+          type: number
+        totalBetStake:
+          type: number
+        totalBetPayout:
+          type: number
+        totalInvestBuy:
+          type: number
+        totalInvestSell:
+          type: number
+        totalInvestDividend:
+          type: number
+        totalAdjustment:
+          type: number
+        ledgerRowCount:
+          type: number
+      required:
+        - totalPurchased
+        - totalPremiumMatch
+        - totalInterest
+        - totalTransferIn
+        - totalTransferOut
+        - totalBetStake
+        - totalBetPayout
+        - totalInvestBuy
+        - totalInvestSell
+        - totalInvestDividend
+        - totalAdjustment
+        - ledgerRowCount
+    ReturnsBreakdown:
+      type: object
+      properties:
+        realDollarsInCents:
+          type: number
+          description: WB credited from real-USD Stripe purchases (already scaled at 10:1
+            in the ledger).
+        premiumMatchCents:
+          type: number
+          description: Free WB granted via Premium match.
+        interestEarnedCents:
+          type: number
+          description: Sum of all interest credited.
+        wagerPlCents:
+          type: number
+          description: Net P/L on settled wagers (payouts − stakes). Negative if losing
+            overall.
+        investingPlCents:
+          type: number
+          description: Realized + unrealized investing P/L, including dividends received.
+        dividendsCents:
+          type: number
+          description: Total dividends received from stock positions.
+        netTransfersCents:
+          type: number
+          description: Net of all transfers (received − sent).
+        adjustmentsCents:
+          type: number
+          description: Admin adjustments.
+        totalReturnCents:
+          type: number
+          description: Total return vs. money in (purchases).
+        totalReturnFraction:
+          type: number
+          description: Total return as a fraction of money in (purchases + premium match).
+            0 if denom is 0.
+      required:
+        - realDollarsInCents
+        - premiumMatchCents
+        - interestEarnedCents
+        - wagerPlCents
+        - investingPlCents
+        - dividendsCents
+        - netTransfersCents
+        - adjustmentsCents
+        - totalReturnCents
+        - totalReturnFraction
+    EnrichedPosition:
+      type: object
+      properties:
+        marketPriceCents:
+          type:
+            - number
+            - "null"
+        marketValueCents:
+          type:
+            - number
+            - "null"
+        unrealizedCents:
+          type:
+            - number
+            - "null"
+        prevCloseCents:
+          type:
+            - number
+            - "null"
+          description: Previous session close (per share), or null when the quote lacks it.
+        dayChangeCents:
+          type:
+            - number
+            - "null"
+          description: Today's market move on this holding (shares × (price − prevClose)),
+            or null when there's no previous-close to compare against.
+        symbol:
+          type: string
+        shares:
+          type: number
+        costBasisCents:
+          type: number
+      required:
+        - costBasisCents
+        - dayChangeCents
+        - marketPriceCents
+        - marketValueCents
+        - prevCloseCents
+        - shares
+        - symbol
+        - unrealizedCents
+    BalanceSeriesPoint:
+      type: object
+      properties:
+        day:
+          type: string
+        balanceCents:
+          type: number
+      required:
+        - day
+        - balanceCents
+    TransferRequest:
+      type: object
+      properties:
+        recipient:
+          type: string
+        amount:
+          type: number
+          description: Amount in whole WB; or pass `amountCents` directly.
+        amountCents:
+          type: number
+        memo:
+          type: string
+      required:
+        - recipient
+      description: POST /api/v1/wb/transfer — send WB to another user by username.
+    TransferResponse:
+      type: object
+      properties:
+        transferId:
+          type: number
+      required:
+        - transferId
+    InvestOrderRequest:
+      type: object
+      properties:
+        symbol:
+          type: string
+        side:
+          type: string
+          enum:
+            - buy
+            - sell
+        amount:
+          type: number
+          description: USD amount (whole dollars) — or pass `shares`.
+        shares:
+          type: number
+      required:
+        - symbol
+        - side
+      description: POST /api/v1/wb/invest/order — buy/sell a symbol by USD amount or shares.
+    InvestOrderResponse:
+      type: object
+      properties:
+        orderId:
+          type: number
+        totalCents:
+          type: number
+      required:
+        - orderId
+        - totalCents
+    ClaimBonusResponse:
+      type: object
+      properties:
+        claimed:
+          type: boolean
+        amountCents:
+          type: number
+        streak:
+          type: number
+      required:
+        - claimed
+        - amountCents
+        - streak
+      description: POST /api/v1/wb/bonus — claim the daily bonus.
+    BonusStatusResponse:
+      type: object
+      properties:
+        available:
+          type: boolean
+        streak:
+          type: number
+      required:
+        - available
+        - streak
+      description: GET /api/v1/wb/bonus — is today's bonus still claimable + current streak.
+    WatchlistMutateRequest:
+      type: object
+      properties:
+        symbol:
+          type: string
+        action:
+          type: string
+          enum:
+            - add
+            - remove
+      required:
+        - symbol
+        - action
+      description: POST /api/v1/wb/watchlist — add/remove a symbol from the watchlist.
+    WatchlistMutateResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+        watching:
+          type: boolean
+      required:
+        - symbol
+        - watching
+    WatchlistResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WatchEntry"
+      required:
+        - items
+      description: GET /api/v1/wb/watchlist — the user's watched symbols.
+    WatchEntry:
+      type: object
+      properties:
+        symbol:
+          type: string
+        addedAt:
+          type: string
+      required:
+        - symbol
+        - addedAt
+    NotificationsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        unread:
+          type: number
+      required:
+        - items
+        - unread
+      description: GET /api/v1/wb/notifications — recent notifications + unread count.
+    Notification:
+      type: object
+      properties:
+        id:
+          type: number
+        kind:
+          $ref: "#/components/schemas/NotificationKind"
+        title:
+          type: string
+        body:
+          type:
+            - string
+            - "null"
+        href:
+          type:
+            - string
+            - "null"
+        readAt:
+          type:
+            - string
+            - "null"
+        createdAt:
+          type: string
+      required:
+        - id
+        - kind
+        - title
+        - body
+        - href
+        - readAt
+        - createdAt
+    NotificationKind:
+      type: string
+      enum:
+        - bet_settled
+        - dividend
+        - transfer_in
+        - interest_posted
+        - achievement
+        - renewal
+        - referral
+        - system
+    MarkReadResponse:
+      type: object
+      properties:
+        unread:
+          type: number
+          const: 0
+      required:
+        - unread
+      description: POST /api/v1/wb/notifications — mark all read.
+    ActivityResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/LedgerEntry"
+      required:
+        - entries
+      description: GET /api/v1/wb/activity — ledger entries (JSON sibling of the CSV
+        export).
+    LedgerEntry:
+      type: object
+      properties:
+        id:
+          type: number
+        amountCents:
+          type: number
+        kind:
+          $ref: "#/components/schemas/LedgerKind"
+        memo:
+          type:
+            - string
+            - "null"
+        createdAt:
+          type: string
+      required:
+        - id
+        - amountCents
+        - kind
+        - memo
+        - createdAt
+    LedgerKind:
+      type: string
+      enum:
+        - purchase
+        - premium_match
+        - fantasy_match
+        - interest
+        - transfer_in
+        - transfer_out
+        - bet_stake
+        - bet_payout
+        - invest_buy
+        - invest_sell
+        - invest_dividend
+        - daily_bonus
+        - referral_reward
+        - adjustment
+    EventsResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/BetEvent"
+      required:
+        - events
+      description: GET /api/v1/wb/events — open house-wager events (with outcomes).
+    BetEvent:
+      type: object
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        description:
+          type:
+            - string
+            - "null"
+        status:
+          $ref: "#/components/schemas/EventStatus"
+        createdBy:
+          type:
+            - string
+            - "null"
+        closesAt:
+          type:
+            - string
+            - "null"
+        settledOutcomeId:
+          type:
+            - number
+            - "null"
+        createdAt:
+          type: string
+        source:
+          $ref: "#/components/schemas/EventSource"
+        externalEventId:
+          type:
+            - string
+            - "null"
+        sportKey:
+          type:
+            - string
+            - "null"
+        market:
+          anyOf:
+            - $ref: "#/components/schemas/BetMarket"
+            - type: "null"
+        homeTeam:
+          type:
+            - string
+            - "null"
+        awayTeam:
+          type:
+            - string
+            - "null"
+        commenceTime:
+          type:
+            - string
+            - "null"
+        outcomes:
+          type: array
+          items:
+            $ref: "#/components/schemas/BetOutcome"
+      required:
+        - id
+        - title
+        - description
+        - status
+        - createdBy
+        - closesAt
+        - settledOutcomeId
+        - createdAt
+        - source
+        - externalEventId
+        - sportKey
+        - market
+        - homeTeam
+        - awayTeam
+        - commenceTime
+        - outcomes
+    EventStatus:
+      type: string
+      enum:
+        - open
+        - locked
+        - settled
+        - cancelled
+    EventSource:
+      type: string
+      enum:
+        - manual
+        - odds_api
+        - sleeper
+    BetMarket:
+      type: string
+      enum:
+        - h2h
+        - spreads
+        - totals
+    BetOutcome:
+      type: object
+      properties:
+        id:
+          type: number
+        label:
+          type: string
+        oddsDecimal:
+          type: number
+        point:
+          type:
+            - number
+            - "null"
+        outcomeKey:
+          type:
+            - string
+            - "null"
+      required:
+        - id
+        - label
+        - oddsDecimal
+        - point
+        - outcomeKey
+    BetsResponse:
+      type: object
+      properties:
+        wagers:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserWager"
+      required:
+        - wagers
+      description: GET /api/v1/wb/bets — the signed-in user's wagers (newest first).
+    UserWager:
+      type: object
+      properties:
+        id:
+          type: number
+        eventId:
+          type: number
+        status:
+          $ref: "#/components/schemas/WagerStatus"
+        stakeCents:
+          type: number
+        oddsFrozen:
+          type: number
+        pointFrozen:
+          type:
+            - number
+            - "null"
+        createdAt:
+          type: string
+        payoutCents:
+          type: number
+          description: "Actual credited amount: full return for won, stake back for
+            refunded, else 0."
+        potentialCents:
+          type: number
+          description: What a win returns (stake × frozen odds) — shown for open wagers too.
+        outcomeLabel:
+          type: string
+        event:
+          type: object
+          properties:
+            title:
+              type: string
+            market:
+              anyOf:
+                - $ref: "#/components/schemas/BetMarket"
+                - type: "null"
+            sportKey:
+              type:
+                - string
+                - "null"
+            status:
+              $ref: "#/components/schemas/EventStatus"
+            commenceTime:
+              type:
+                - string
+                - "null"
+          required:
+            - title
+            - market
+            - sportKey
+            - status
+            - commenceTime
+      required:
+        - id
+        - eventId
+        - status
+        - stakeCents
+        - oddsFrozen
+        - pointFrozen
+        - createdAt
+        - payoutCents
+        - potentialCents
+        - outcomeLabel
+        - event
+    WagerStatus:
+      type: string
+      enum:
+        - open
+        - won
+        - lost
+        - refunded
+    QuoteResponse:
+      $ref: "#/components/schemas/Quote"
+      description: GET /api/v1/wb/quote?symbol= — a single live quote.
+    Quote:
+      type: object
+      properties:
+        symbol:
+          type: string
+        priceCents:
+          type: number
+        prevCloseCents:
+          type:
+            - number
+            - "null"
+          description: Previous session's close, for day-over-day change. Null when
+            unknown (older cached rows backfill on their next fetch).
+        fetchedAt:
+          type: string
+      required:
+        - symbol
+        - priceCents
+        - prevCloseCents
+        - fetchedAt
+    SearchResult:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          enum:
+            - stock
+            - crypto
+      required:
+        - symbol
+        - name
+        - kind
+      description: GET /api/v1/wb/search?q= — symbol typeahead.
+    SearchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchResult"
+      required:
+        - results
+    TickerResponse:
+      type: object
+      properties:
+        quotes:
+          type: array
+          items:
+            $ref: "#/components/schemas/TickerQuote"
+      required:
+        - quotes
+      description: GET /api/v1/capital/ticker — market strip quotes (public).
+    TickerQuote:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        priceCents:
+          type: number
+        changePct:
+          type: number
+      required:
+        - symbol
+        - name
+        - priceCents
+        - changePct
+    ScoresResponse:
+      type: object
+      properties:
+        games:
+          type: array
+          items:
+            $ref: "#/components/schemas/Game"
+      required:
+        - games
+      description: GET /api/v1/news/scores — live scores (public).
+    Game:
+      type: object
+      properties:
+        id:
+          type: string
+        league:
+          type: string
+        state:
+          type: string
+          enum:
+            - pre
+            - in
+            - post
+          description: '"pre" (upcoming) | "in" (live) | "post" (final)'
+        detail:
+          type: string
+          description: ESPN's short status line, e.g. "Q3 5:21", "Final", "6/3 - 8:30 PM
+            EDT".
+        away:
+          type: object
+          properties:
+            abbr:
+              type: string
+            logo:
+              type:
+                - string
+                - "null"
+            score:
+              type:
+                - string
+                - "null"
+          required:
+            - abbr
+            - logo
+            - score
+          description: Live scores for the ticker. Reads ESPN's free public scoreboard API
+            (no key) per league, normalizes each game, and orders them
+            live-first. Mirrors the fetch-revalidate pattern used elsewhere; 30s
+            revalidation keeps scores fresh without hammering ESPN.
+        home:
+          type: object
+          properties:
+            abbr:
+              type: string
+            logo:
+              type:
+                - string
+                - "null"
+            score:
+              type:
+                - string
+                - "null"
+          required:
+            - abbr
+            - logo
+            - score
+          description: Live scores for the ticker. Reads ESPN's free public scoreboard API
+            (no key) per league, normalizes each game, and orders them
+            live-first. Mirrors the fetch-revalidate pattern used elsewhere; 30s
+            revalidation keeps scores fresh without hammering ESPN.
+        link:
+          type:
+            - string
+            - "null"
+        startsAt:
+          type:
+            - string
+            - "null"
+      required:
+        - id
+        - league
+        - state
+        - detail
+        - away
+        - home
+        - link
+        - startsAt
+    AccountResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        avatarUrl:
+          type:
+            - string
+            - "null"
+        discordUserId:
+          type:
+            - string
+            - "null"
+        isAdmin:
+          type: boolean
+        onboarded:
+          type: boolean
+          description: Whether first-run onboarding is complete — the iOS app branches on
+            this.
+        auth:
+          type: object
+          properties:
+            hasDiscord:
+              type: boolean
+            hasPassword:
+              type: boolean
+            email:
+              type:
+                - string
+                - "null"
+            emailVerified:
+              type: boolean
+          required:
+            - hasDiscord
+            - hasPassword
+            - email
+            - emailVerified
+        referrals:
+          $ref: "#/components/schemas/ReferralStats"
+        achievements:
+          type: array
+          items:
+            $ref: "#/components/schemas/EarnedAchievement"
+      required:
+        - id
+        - username
+        - avatarUrl
+        - discordUserId
+        - isAdmin
+        - onboarded
+        - auth
+        - referrals
+        - achievements
+      description: GET /api/v1/account — profile, auth methods, referrals, achievements.
+    ReferralStats:
+      type: object
+      properties:
+        code:
+          type: string
+        totalReferred:
+          type: number
+        totalRewarded:
+          type: number
+        totalRewardCents:
+          type: number
+      required:
+        - code
+        - totalReferred
+        - totalRewarded
+        - totalRewardCents
+    EarnedAchievement:
+      type: object
+      properties:
+        code:
+          $ref: "#/components/schemas/AchievementCode"
+        earnedAt:
+          type: string
+      required:
+        - code
+        - earnedAt
+    AchievementCode:
+      type: string
+      enum:
+        - first_buy
+        - first_trade
+        - first_win
+        - first_dividend
+        - first_send
+        - thirty_day_holder
+        - big_win
+        - diversified
+      description: "Achievement catalog. Adding one: append to ACHIEVEMENTS and add an
+        evaluator call site (or wire into evaluateAfter*). The catalog is the
+        source of truth for icon + label — DB only stores the code string."
+    UsernameAvailableResponse:
+      type: object
+      properties:
+        available:
+          type: boolean
+        normalized:
+          type: string
+          description: The handle normalized to the allowed format (suggested value).
+        reason:
+          type: string
+          description: Why unavailable, when `available` is false.
+      required:
+        - available
+        - normalized
+      description: GET /api/v1/account/username-available?handle=
+    SetUsernameRequest:
+      type: object
+      properties:
+        username:
+          type: string
+      required:
+        - username
+      description: POST /api/v1/account/profile — set
+    ProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        avatarUrl:
+          type:
+            - string
+            - "null"
+        onboarded:
+          type: boolean
+      required:
+        - id
+        - username
+        - avatarUrl
+        - onboarded
+    AvatarResponse:
+      type: object
+      properties:
+        avatarUrl:
+          type: string
+      required:
+        - avatarUrl
+      description: POST /api/v1/account/avatar — multipart image upload.
+    FantasyOverviewResponse:
+      type: object
+      properties:
+        state:
+          anyOf:
+            - $ref: "#/components/schemas/NflState"
+            - type: "null"
+        link:
+          anyOf:
+            - $ref: "#/components/schemas/FantasyLink"
+            - type: "null"
+        board:
+          $ref: "#/components/schemas/CrossLeagueScoreboard"
+        pools:
+          type: array
+          items:
+            $ref: "#/components/schemas/PoolSummary"
+        leagues:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeagueOverview"
+      required:
+        - state
+        - link
+        - board
+        - pools
+        - leagues
+      description: GET /api/v1/fantasy/overview — the Fantasy home composition.
+    NflState:
+      type: object
+      properties:
+        week:
+          type: number
+        season:
+          type: string
+        season_type:
+          type: string
+          description: '"pre" | "regular" | "post" | "off"'
+        display_week:
+          type: number
+          description: Week to display in UI (can differ from scoring week in off/pre
+            season).
+        leg:
+          type: number
+      required:
+        - week
+        - season
+        - season_type
+      description: Sleeper API response shapes (the subset we consume). Sleeper is
+        read-only and unauthenticated. See https://docs.sleeper.app/. Only
+        fields we actually use are typed; the API returns much more.
+    FantasyLink:
+      type: object
+      properties:
+        sleeperUserId:
+          type: string
+        sleeperUsername:
+          type: string
+      required:
+        - sleeperUserId
+        - sleeperUsername
+    CrossLeagueScoreboard:
+      type: object
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/CrossLeagueRow"
+        leagues:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+            required:
+              - id
+              - name
+      required:
+        - rows
+        - leagues
+    CrossLeagueRow:
+      type: object
+      properties:
+        rank:
+          type: number
+        rosterId:
+          type: number
+        ownerId:
+          type:
+            - string
+            - "null"
+        teamName:
+          type: string
+        ownerName:
+          type: string
+        avatarUrl:
+          type:
+            - string
+            - "null"
+        leagueId:
+          type: string
+        leagueName:
+          type: string
+        leaguePosition:
+          type: number
+          description: 1-based finish within that team's own league.
+        wins:
+          type: number
+        losses:
+          type: number
+        ties:
+          type: number
+        winPct:
+          type: number
+        pointsFor:
+          type: number
+        powerScore:
+          type: number
+      required:
+        - rank
+        - rosterId
+        - ownerId
+        - teamName
+        - ownerName
+        - avatarUrl
+        - leagueId
+        - leagueName
+        - leaguePosition
+        - wins
+        - losses
+        - ties
+        - winPct
+        - pointsFor
+        - powerScore
+    PoolSummary:
+      type: object
+      properties:
+        config:
+          $ref: "#/components/schemas/FantasyLeagueConfig"
+        kind:
+          $ref: "#/components/schemas/LeagueKind"
+        displayName:
+          type: string
+        logoUrl:
+          type:
+            - string
+            - "null"
+          description: Custom uploaded logo (falls back to the Sleeper avatar, then a
+            monogram).
+        totalEntries:
+          type: number
+        aliveCount:
+          type:
+            - number
+            - "null"
+          description: Survivor only — how many are still alive.
+        sleeperUrl:
+          type: string
+      required:
+        - config
+        - kind
+        - displayName
+        - logoUrl
+        - totalEntries
+        - aliveCount
+        - sleeperUrl
+    FantasyLeagueConfig:
+      type: object
+      properties:
+        sleeperLeagueId:
+          type: string
+        season:
+          type: string
+        name:
+          type:
+            - string
+            - "null"
+          description: Display override; null falls back to the Sleeper league name.
+        sort:
+          type: number
+        active:
+          type: boolean
+        logoUrl:
+          type:
+            - string
+            - "null"
+          description: Custom uploaded logo; null falls back to the Sleeper league avatar.
+        kind:
+          $ref: "#/components/schemas/LeagueKind"
+          description: Game type — standard H2H, or a pick'em / survivor pool.
+        entryFeeCents:
+          type:
+            - number
+            - "null"
+          description: One-time entry fee in USD cents. null/0 = not purchasable
+            (free/legacy).
+        joinUrl:
+          type:
+            - string
+            - "null"
+          description: Sleeper invite link, revealed only after a paid entitlement.
+        groupKey:
+          type: string
+          description: Interchangeable leagues share one product/payment. Falls back to
+            the league id (each league is then its own group).
+        capacity:
+          type: number
+          description: Max paid entries per league — used to balance auto-assignment.
+        productName:
+          type:
+            - string
+            - "null"
+          description: Display name for the shared product (e.g. "Whoosh PPR League").
+      required:
+        - sleeperLeagueId
+        - season
+        - name
+        - sort
+        - active
+        - logoUrl
+        - kind
+        - entryFeeCents
+        - joinUrl
+        - groupKey
+        - capacity
+        - productName
+      description: A curated Whoosh league row from `fantasy_league`.
+    LeagueKind:
+      type: string
+      enum:
+        - standard
+        - pickem
+        - survivor
+      description: Game type of a curated league. Standard = H2H fantasy; the rest are
+        Sleeper pick'em pools that don't have rosters/points/records/matchups.
+    LeagueOverview:
+      type: object
+      properties:
+        config:
+          $ref: "#/components/schemas/FantasyLeagueConfig"
+        displayName:
+          type: string
+        season:
+          type: string
+        status:
+          type:
+            - string
+            - "null"
+        avatarUrl:
+          type:
+            - string
+            - "null"
+        totalRosters:
+          type: number
+        standings:
+          type: array
+          items:
+            $ref: "#/components/schemas/StandingRow"
+      required:
+        - config
+        - displayName
+        - season
+        - status
+        - avatarUrl
+        - totalRosters
+        - standings
+    StandingRow:
+      type: object
+      properties:
+        rosterId:
+          type: number
+        ownerId:
+          type:
+            - string
+            - "null"
+        teamName:
+          type: string
+        ownerName:
+          type: string
+        avatarUrl:
+          type:
+            - string
+            - "null"
+        wins:
+          type: number
+        losses:
+          type: number
+        ties:
+          type: number
+        pointsFor:
+          type: number
+        pointsAgainst:
+          type: number
+      required:
+        - rosterId
+        - ownerId
+        - teamName
+        - ownerName
+        - avatarUrl
+        - wins
+        - losses
+        - ties
+        - pointsFor
+        - pointsAgainst
+    FantasyRankingsResponse:
+      $ref: "#/components/schemas/CrossLeagueScoreboard"
+      description: GET /api/v1/fantasy/rankings
+    FantasyPoolsResponse:
+      type: object
+      properties:
+        pools:
+          type: array
+          items:
+            $ref: "#/components/schemas/PoolSummary"
+      required:
+        - pools
+      description: GET /api/v1/fantasy/pools
+    FantasyPoolDetailResponse:
+      $ref: "#/components/schemas/PoolDetail"
+      description: GET /api/v1/fantasy/pools/[leagueId]
+    PoolDetail:
+      type: object
+      properties:
+        season:
+          type: string
+        status:
+          type:
+            - string
+            - "null"
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/PoolEntry"
+        config:
+          $ref: "#/components/schemas/FantasyLeagueConfig"
+        kind:
+          $ref: "#/components/schemas/LeagueKind"
+        displayName:
+          type: string
+        logoUrl:
+          type:
+            - string
+            - "null"
+          description: Custom uploaded logo (falls back to the Sleeper avatar, then a
+            monogram).
+        totalEntries:
+          type: number
+        aliveCount:
+          type:
+            - number
+            - "null"
+          description: Survivor only — how many are still alive.
+        sleeperUrl:
+          type: string
+      required:
+        - aliveCount
+        - config
+        - displayName
+        - entries
+        - kind
+        - logoUrl
+        - season
+        - sleeperUrl
+        - status
+        - totalEntries
+    PoolEntry:
+      type: object
+      properties:
+        rosterId:
+          type: number
+        name:
+          type: string
+        ownerName:
+          type: string
+        avatarUrl:
+          type:
+            - string
+            - "null"
+        eliminated:
+          type:
+            - boolean
+            - "null"
+          description: "Survivor: true once knocked out. null for Pick 'Em (not
+            applicable)."
+      required:
+        - rosterId
+        - name
+        - ownerName
+        - avatarUrl
+        - eliminated
+      description: Sleeper "pick'em" pools (Pick 'Em + Survivor). Unlike the H2H
+        leagues these have no rosters/points/records/matchups, and Sleeper's
+        public API doesn't expose pick standings — so we surface what it does
+        give (participants, and for Survivor each entry's alive/eliminated
+        status) plus a link out to Sleeper for the full picks experience.
+    FantasyLeagueResponse:
+      type: object
+      properties:
+        overview:
+          $ref: "#/components/schemas/LeagueOverview"
+        access:
+          type: boolean
+      required:
+        - overview
+        - access
+      description: GET /api/v1/fantasy/leagues/[leagueId] — overview + the viewer's access.
+    FantasyMatchupsResponse:
+      type: object
+      properties:
+        week:
+          type: number
+        blocks:
+          type: array
+          items:
+            type: object
+            properties:
+              leagueId:
+                type: string
+              leagueName:
+                type: string
+              season:
+                type: string
+              matchups:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Matchup"
+            required:
+              - leagueId
+              - leagueName
+              - season
+              - matchups
+      required:
+        - week
+        - blocks
+      description: GET /api/v1/fantasy/matchups — current scoring week across H2H leagues.
+    Matchup:
+      type: object
+      properties:
+        matchupId:
+          type:
+            - number
+            - "null"
+          description: Sleeper matchup_id grouping the two teams; null = bye / no opponent.
+        home:
+          $ref: "#/components/schemas/MatchupTeam"
+        away:
+          anyOf:
+            - $ref: "#/components/schemas/MatchupTeam"
+            - type: "null"
+      required:
+        - matchupId
+        - home
+        - away
+    MatchupTeam:
+      type: object
+      properties:
+        rosterId:
+          type: number
+        ownerId:
+          type:
+            - string
+            - "null"
+        teamName:
+          type: string
+        avatarUrl:
+          type:
+            - string
+            - "null"
+        points:
+          type: number
+        isMine:
+          type: boolean
+      required:
+        - rosterId
+        - ownerId
+        - teamName
+        - avatarUrl
+        - points
+        - isMine
+    LinkSleeperRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        action:
+          type: string
+          enum:
+            - link
+            - unlink
+      description: POST /api/v1/fantasy/link — link or unlink a Sleeper account.
+    LinkSleeperResponse:
+      type: object
+      properties:
+        link:
+          anyOf:
+            - $ref: "#/components/schemas/FantasyLink"
+            - type: "null"
+      required:
+        - link
+    SwipeRequest:
+      type: object
+      properties:
+        action:
+          type: string
+          enum:
+            - swipe
+            - undo
+        sport:
+          type: string
+        direction:
+          type: string
+          enum:
+            - left
+            - right
+        guid:
+          type: string
+        article:
+          type: object
+          properties:
+            guid:
+              type: string
+            title:
+              type: string
+            description:
+              type: string
+            link:
+              type: string
+            author:
+              type:
+                - string
+                - "null"
+            image:
+              type:
+                - string
+                - "null"
+            pubDate:
+              type:
+                - string
+                - "null"
+      description: POST /api/v1/news/swipe — keep (right) / trash (left) / undo.
+    SwipeResponse:
+      type: object
+      properties:
+        points:
+          type: number
+      required:
+        - points
+    NewsFeedResponse:
+      anyOf:
+        - type: object
+          properties:
+            mode:
+              type: string
+              const: whoosh
+            entries:
+              type: array
+              items:
+                $ref: "#/components/schemas/WhooshEntry"
+          required:
+            - mode
+            - entries
+        - type: object
+          properties:
+            mode:
+              type: string
+              const: sport
+            sport:
+              type: string
+            articles:
+              type: array
+              items:
+                $ref: "#/components/schemas/Article"
+          required:
+            - mode
+            - sport
+            - articles
+      description: GET /api/v1/news/feed — Whoosh feed (no sport) or a sport's
+        swipeable feed.   ?view=mine → the viewer's kept articles; default →
+        community kept feed.   ?sport=<key> → that sport's ESPN articles minus
+        already-swiped.
+    WhooshEntry:
+      type: object
+      properties:
+        espnId:
+          type: string
+        sport:
+          $ref: "#/components/schemas/SportKey"
+        title:
+          type: string
+        description:
+          type:
+            - string
+            - "null"
+        link:
+          type: string
+        author:
+          type:
+            - string
+            - "null"
+        imageUrl:
+          type:
+            - string
+            - "null"
+        pubDate:
+          type:
+            - string
+            - "null"
+        points:
+          type: number
+      required:
+        - espnId
+        - sport
+        - title
+        - description
+        - link
+        - author
+        - imageUrl
+        - pubDate
+        - points
+    SportKey:
+      type: string
+      enum:
+        - nfl
+        - ncf
+        - nba
+        - mlb
+        - soccer
+        - nhl
+        - golf
+        - tennis
+        - boxing
+        - ncb
+        - racing
+        - mma
+      description: >-
+        Thin read-only wrapper over ESPN's JSON news APIs. Mirrors the
+        fetch-revalidate pattern in src/lib/sleeper/client.ts (no auth, no key;
+        Next's per-fetch data cache serves repeat reads within the window).
+
+
+        We use the JSON APIs rather than ESPN's public RSS because RSS truncates
+        headlines (its <title> is cut off with "…") and carries no images. Two
+        JSON endpoints cover every sport, both returning the same article
+        shape:  - site.api.espn.com/.../sports/<apiPath>/news  → { articles:
+        [...] }  - now.core.api.espn.com/v1/sports/news?sport=  → { headlines:
+        [...] }   (boxing)
+    Article:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Full, untruncated headline.
+        description:
+          type: string
+        link:
+          type: string
+        pubDate:
+          type:
+            - string
+            - "null"
+          description: ISO date string from ESPN; formatted in the UI.
+        author:
+          type:
+            - string
+            - "null"
+        guid:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+          description: Image URLs for the post, shown at the bottom. Empty when none are
+            provided.
+      required:
+        - title
+        - description
+        - link
+        - pubDate
+        - author
+        - guid
+        - images
+    CheckoutUrlResponse:
+      type: object
+      properties:
+        url:
+          type: string
+      required:
+        - url
+      description: A hosted Stripe URL for the client to open externally.
+    BuyWbRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+          description: USD amount in whole dollars; or pass `amountCents`.
+        amountCents:
+          type: number
+      description: POST /api/v1/wb/buy — start a Whoosh Bucks purchase.
+    SubscribeRequest:
+      type: object
+      properties:
+        interval:
+          type: string
+          enum:
+            - monthly
+            - six_months
+            - annual
+      required:
+        - interval
+      description: POST /api/v1/checkout — start a premium subscription.
+    FantasyCheckoutRequest:
+      type: object
+      properties:
+        groupKey:
+          type: string
+      required:
+        - groupKey
+      description: POST /api/v1/fantasy/checkout — start a league-group entry-fee purchase.
+    HomeResponse:
+      type: object
+      properties:
+        capital:
+          $ref: "#/components/schemas/DashboardData"
+        board:
+          $ref: "#/components/schemas/CrossLeagueScoreboard"
+        topArticle:
+          anyOf:
+            - $ref: "#/components/schemas/Article"
+            - type: "null"
+        fantasyLink:
+          anyOf:
+            - $ref: "#/components/schemas/FantasyLink"
+            - type: "null"
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/Section"
+      required:
+        - capital
+        - board
+        - topArticle
+        - fantasyLink
+        - sections
+      description: GET /api/v1/home — one call powering the app's logged-in landing screen.
+    Section:
+      type: object
+      properties:
+        key:
+          $ref: "#/components/schemas/SectionKey"
+        label:
+          type: string
+          description: Short label shown on the hub and as the in-section title.
+        href:
+          type: string
+          description: Section hub URL + the prefix that marks a route as "in" this section.
+        tagline:
+          type: string
+          description: One-liner shown on the /home hub cards.
+        nav:
+          type: array
+          items:
+            $ref: "#/components/schemas/NavItem"
+          description: Sub-pages shown in the desktop sub-nav and mobile route strip.
+        live:
+          type: boolean
+          description: True once the section has real content; false renders a "coming
+            soon".
+      required:
+        - key
+        - label
+        - href
+        - tagline
+        - nav
+        - live
+    SectionKey:
+      type: string
+      enum:
+        - capital
+        - fantasy
+        - pool
+        - news
+      description: >-
+        Single source of truth for the signed-in app's section structure.
+
+
+        The signed-in experience is split into themed sections. Each section
+        owns a URL prefix, a `data-theme` scope (see globals.css), and a list of
+        sub-pages. Navigation surfaces (AppShell header, desktop sub-nav, mobile
+        route strip, bottom tab bar) all read from here instead of hardcoding
+        link lists.
+
+
+        This file is intentionally data-only (no JSX) so it can be imported by
+        both server and client components. Icons are resolved by key in the
+        client nav components.
+    NavItem:
+      type: object
+      properties:
+        href:
+          type: string
+        label:
+          type: string
+      required:
+        - href
+        - label
+    ApiError:
+      type: object
+      required:
+        - ok
+        - error
+      properties:
+        ok:
+          type: boolean
+          enum:
+            - false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              enum:
+                - unauthorized
+                - forbidden
+                - validation
+                - not_found
+                - conflict
+                - insufficient_funds
+                - not_entitled
+                - rate_limited
+                - internal
+            message:
+              type: string
+paths:
+  /api/v1/wb/wallet:
+    get:
+      operationId: getWallet
+      summary: The signed-in user's Capital/WB dashboard.
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/WalletResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/wb/wager:
+    post:
+      operationId: placeWager
+      summary: Place a wager on an event outcome.
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/PlaceWagerResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "402":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceWagerRequest"
+  /api/v1/wb/transfer:
+    post:
+      operationId: transferWb
+      summary: Send Whoosh Bucks to another user by username.
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/TransferResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "402":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferRequest"
+  /api/v1/wb/invest/order:
+    post:
+      operationId: placeInvestOrder
+      summary: Buy or sell a symbol by USD amount or share count.
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/InvestOrderResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "402":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvestOrderRequest"
+  /api/v1/wb/bonus:
+    get:
+      operationId: getBonusStatus
+      summary: Whether today's daily bonus is claimable + current streak.
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/BonusStatusResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: claimDailyBonus
+      summary: Claim the daily bonus (idempotent per day).
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ClaimBonusResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/wb/watchlist:
+    get:
+      operationId: getWatchlist
+      summary: The user's watched symbols.
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/WatchlistResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: mutateWatchlist
+      summary: Add or remove a symbol from the watchlist.
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/WatchlistMutateResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WatchlistMutateRequest"
+  /api/v1/wb/notifications:
+    get:
+      operationId: listNotifications
+      summary: Recent notifications + unread count.
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/NotificationsResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: markNotificationsRead
+      summary: Mark all notifications read.
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/MarkReadResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/wb/activity:
+    get:
+      operationId: getActivity
+      summary: Ledger entries (JSON sibling of the CSV export).
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: group
+          in: query
+          required: false
+          description: Ledger kind group filter.
+          schema:
+            type: string
+        - name: since
+          in: query
+          required: false
+          description: ISO date lower bound.
+          schema:
+            type: string
+        - name: until
+          in: query
+          required: false
+          description: ISO date upper bound.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ActivityResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/wb/events:
+    get:
+      operationId: listEvents
+      summary: Open house-wager events with outcomes.
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/EventsResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/wb/bets:
+    get:
+      operationId: listMyBets
+      summary: The signed-in user's wagers (newest first).
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/BetsResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/wb/quote:
+    get:
+      operationId: getQuote
+      summary: A single live quote for a symbol.
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          description: Ticker or crypto symbol.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/QuoteResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/wb/search:
+    get:
+      operationId: searchSymbols
+      summary: Symbol typeahead (stocks + crypto).
+      tags:
+        - wb
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Search query.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/SearchResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/capital/ticker:
+    get:
+      operationId: getTicker
+      summary: Market-strip quotes (public).
+      tags:
+        - capital
+      security: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/TickerResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/news/scores:
+    get:
+      operationId: getScores
+      summary: Live scores (public).
+      tags:
+        - news
+      security: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ScoresResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/news/feed:
+    get:
+      operationId: getNewsFeed
+      summary: Whoosh feed, or a sport's swipeable feed when ?sport= is given.
+      tags:
+        - news
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sport
+          in: query
+          required: false
+          description: Sport key; omit for the Whoosh feed.
+          schema:
+            type: string
+        - name: view
+          in: query
+          required: false
+          description: "`mine` for the viewer's kept articles."
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/NewsFeedResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/news/swipe:
+    post:
+      operationId: recordSwipe
+      summary: Keep (right) / trash (left) / undo a news article.
+      tags:
+        - news
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/SwipeResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SwipeRequest"
+  /api/v1/account:
+    get:
+      operationId: getAccount
+      summary: Profile, auth methods, referrals, achievements.
+      tags:
+        - account
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/AccountResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/fantasy/overview:
+    get:
+      operationId: getFantasyOverview
+      summary: Fantasy home composition (leagues, rankings, pools, link).
+      tags:
+        - fantasy
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/FantasyOverviewResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/fantasy/rankings:
+    get:
+      operationId: getFantasyRankings
+      summary: Cross-league power-ranking scoreboard.
+      tags:
+        - fantasy
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/FantasyRankingsResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/fantasy/pools:
+    get:
+      operationId: listFantasyPools
+      summary: Pick'em / survivor pool summaries.
+      tags:
+        - fantasy
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/FantasyPoolsResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/fantasy/pools/{leagueId}:
+    get:
+      operationId: getFantasyPool
+      summary: A single pool's detail.
+      tags:
+        - fantasy
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: leagueId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/FantasyPoolDetailResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/fantasy/leagues/{leagueId}:
+    get:
+      operationId: getFantasyLeague
+      summary: A league's overview/standings (entitlement-gated when priced).
+      tags:
+        - fantasy
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: leagueId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/FantasyLeagueResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "402":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/fantasy/matchups:
+    get:
+      operationId: getFantasyMatchups
+      summary: Current scoring week's matchups across H2H leagues.
+      tags:
+        - fantasy
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/FantasyMatchupsResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/fantasy/link:
+    post:
+      operationId: linkSleeper
+      summary: Link or unlink a Sleeper account.
+      tags:
+        - fantasy
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/LinkSleeperResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LinkSleeperRequest"
+  /api/v1/account/username-available:
+    get:
+      operationId: checkUsernameAvailable
+      summary: Live @handle availability check for onboarding.
+      tags:
+        - account
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: handle
+          in: query
+          required: true
+          description: Candidate @handle.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/UsernameAvailableResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/account/profile:
+    post:
+      operationId: setProfile
+      summary: Set the user's @handle and mark them onboarded.
+      tags:
+        - account
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/ProfileResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetUsernameRequest"
+  /api/v1/account/avatar:
+    post:
+      operationId: uploadAvatar
+      summary: Upload a profile avatar image.
+      tags:
+        - account
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/AvatarResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+  /api/v1/home:
+    get:
+      operationId: getHome
+      summary: Aggregate data for the logged-in landing screen.
+      tags:
+        - home
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/HomeResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/wb/buy:
+    post:
+      operationId: buyWhooshBucks
+      summary: Start a Whoosh Bucks purchase; returns a hosted Stripe Checkout URL.
+      tags:
+        - wb
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/CheckoutUrlResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BuyWbRequest"
+  /api/v1/checkout:
+    post:
+      operationId: startSubscription
+      summary: Start a premium subscription; returns a hosted Stripe Checkout URL.
+      tags:
+        - checkout
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/CheckoutUrlResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscribeRequest"
+  /api/v1/portal:
+    post:
+      operationId: billingPortal
+      summary: Stripe Billing Portal URL for managing/cancelling the subscription.
+      tags:
+        - portal
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/CheckoutUrlResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/fantasy/checkout:
+    post:
+      operationId: fantasyCheckout
+      summary: Start a fantasy league-group entry purchase; returns a Stripe URL.
+      tags:
+        - fantasy
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - data
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    $ref: "#/components/schemas/CheckoutUrlResponse"
+        "400":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FantasyCheckoutRequest"
+webhooks:
+  appleIapNotification:
+    post:
+      operationId: appleIapNotification
+      summary: App Store Server Notification V2 (Apple → backend).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - signedPayload
+              properties:
+                signedPayload:
+                  type: string
+      responses:
+        "200":
+          description: Processed (or no-op).
