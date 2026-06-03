@@ -1,34 +1,28 @@
 import SwiftUI
 
-/// Top-level router. Shows the launch splash for ~2s, then cross-fades to the
-/// account-creation screen. (Next step: this becomes session-aware — splash →
-/// sign in / onboarding / home — once Supabase auth is wired in.)
+/// Top-level router, driven by `AppModel`. The launch splash shows during
+/// `.loading` (held ≥2s by `bootstrap()`), then the app routes by auth/onboarding
+/// state. There is intentionally **no marketing/landing screen**.
 struct RootView: View {
-    private enum Phase { case splash, account }
-
-    /// Total time the splash stays up before advancing.
-    private let splashDuration: Duration = .seconds(2)
-
-    @State private var phase: Phase = .splash
+    @EnvironmentObject private var model: AppModel
 
     var body: some View {
         ZStack {
-            switch phase {
-            case .splash:
-                SplashView()
-                    .transition(.opacity)
-            case .account:
-                AccountCreationView()
-                    .transition(.opacity)
+            switch model.state {
+            case .loading:
+                SplashView().transition(.opacity)
+            case .unauthenticated:
+                AccountCreationView().transition(.opacity)
+            case .onboarding:
+                OnboardingView().transition(.opacity)
+            case .home:
+                HomeView().transition(.opacity)
             }
         }
-        .task {
-            try? await Task.sleep(for: splashDuration)
-            withAnimation(.easeInOut(duration: 0.4)) { phase = .account }
-        }
+        .task { await model.bootstrap() }
     }
 }
 
 #Preview {
-    RootView()
+    RootView().environmentObject(AppModel())
 }

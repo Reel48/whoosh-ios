@@ -1,13 +1,17 @@
 import SwiftUI
 
-/// Account creation — the first screen after the splash. On-brand (lime accent,
-/// black ink). The sign-up action is intentionally stubbed for now; the next
-/// step wires it to Supabase. Field state and validation are real so the screen
-/// behaves like the finished thing.
+/// Account creation / sign-in — the first screen for signed-out users. Defaults
+/// to sign-up ("create your account"); a toggle switches to sign-in. On success
+/// the AppModel re-resolves: a brand-new user lands in onboarding.
 struct AccountCreationView: View {
+    @EnvironmentObject private var model: AppModel
+
+    @State private var isSignUp = true
     @State private var email = ""
     @State private var password = ""
     @State private var busy = false
+    @State private var error: String?
+    @State private var note: String?
 
     private var canSubmit: Bool {
         email.contains("@") && password.count >= 8 && !busy
@@ -15,47 +19,43 @@ struct AccountCreationView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Brand header
             VStack(spacing: 12) {
                 Image("WhooshBolt")
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
+                    .renderingMode(.template).resizable().scaledToFit()
                     .frame(width: 56, height: 56)
                     .foregroundStyle(Color.whooshInk)
-                Text("Create your account")
+                Text(isSignUp ? "Create your account" : "Welcome back")
                     .font(.title.bold())
-                Text("Join Whoosh")
+                Text(isSignUp ? "Join Whoosh" : "Sign in to Whoosh")
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
             .padding(.top, 64)
             .padding(.bottom, 36)
 
-            // Form
             VStack(spacing: 14) {
                 TextField("Email", text: $email)
                     .textContentType(.emailAddress)
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .padding()
-                    .background(Color(.secondarySystemBackground))
+                    .padding().background(Color(.secondarySystemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 SecureField("Password (8+ characters)", text: $password)
-                    .textContentType(.newPassword)
-                    .padding()
-                    .background(Color(.secondarySystemBackground))
+                    .textContentType(isSignUp ? .newPassword : .password)
+                    .padding().background(Color(.secondarySystemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                Button(action: createAccount) {
+                if let error { Text(error).foregroundStyle(.red).font(.footnote) }
+                if let note { Text(note).foregroundStyle(.secondary).font(.footnote) }
+
+                Button(action: { Task { await submit() } }) {
                     Group {
                         if busy { ProgressView() }
-                        else { Text("Create account").bold() }
+                        else { Text(isSignUp ? "Create account" : "Sign in").bold() }
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
+                    .frame(maxWidth: .infinity).padding()
                     .background(Color.whooshLime)
                     .foregroundStyle(Color.whooshInk)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -67,23 +67,36 @@ struct AccountCreationView: View {
 
             Spacer()
 
-            Button("Already have an account?  Sign in") {
-                // TODO: route to a sign-in screen (next step).
+            Button(isSignUp ? "Already have an account?  Sign in"
+                            : "New here?  Create an account") {
+                isSignUp.toggle(); error = nil; note = nil
             }
             .font(.footnote)
             .padding(.bottom, 24)
         }
     }
 
-    private func createAccount() {
-        // TODO: wire Supabase sign-up here (next step):
-        //   try await SupabaseAuth.shared.signUpEmail(email, password: password)
-        // then route into onboarding. For now this is a no-op stub.
-        busy = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { busy = false }
+    private func submit() async {
+        busy = true; error = nil; note = nil
+        defer { busy = false }
+        do {
+            if isSignUp {
+                let started = try await model.auth.signUp(email: email, password: password)
+                guard started else {
+                    note = "Check your email to confirm, then sign in."
+                    isSignUp = false
+                    return
+                }
+            } else {
+                try await model.auth.signIn(email: email, password: password)
+            }
+            await model.didAuthenticate()
+        } catch {
+            self.error = error.localizedDescription
+        }
     }
 }
 
 #Preview {
-    AccountCreationView()
+    AccountCreationView().environmentObject(AppModel())
 }
