@@ -173,6 +173,20 @@ actor WhooshAPI {
         let _: R = try await post("/api/v1/fantasy/link", body: LinkSleeperBody(username: nil, action: "unlink"))
     }
 
+    /// Start a Premium subscription — returns a hosted Stripe Checkout URL the
+    /// app opens in the browser (web link-out; the Stripe webhook grants premium).
+    func subscribe(interval: String) async throws -> URL {
+        let r: CheckoutURL = try await post("/api/v1/checkout", body: SubscribeBody(interval: interval))
+        guard let u = URL(string: r.url) else { throw APIError.unknown }
+        return u
+    }
+    /// Stripe Billing Portal URL to manage/cancel an existing subscription.
+    func manageSubscription() async throws -> URL {
+        let r: CheckoutURL = try await postNoBody("/api/v1/portal")
+        guard let u = URL(string: r.url) else { throw APIError.unknown }
+        return u
+    }
+
     func uploadAvatar(imageData: Data, fileName: String = "avatar.jpg",
                       mimeType: String = "image/jpeg") async throws -> AvatarResult {
         var req = await request("POST", "/api/v1/account/avatar")

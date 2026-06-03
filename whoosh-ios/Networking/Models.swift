@@ -20,7 +20,40 @@ struct Account: Decodable, Sendable {
     let username: String
     let avatarUrl: String?
     let onboarded: Bool
+    // Newer fields — Optional so a response from an older deploy can't break
+    // decoding (account() runs at launch and must never throw on a stale shape).
+    let premium: Bool?
+    let isAdmin: Bool?
+    let discordUserId: String?
+    let auth: AuthMethods?
+    let referrals: ReferralStats?
+    let achievements: [EarnedAchievement]?
+
+    var isPremium: Bool { premium ?? false }
 }
+
+struct AuthMethods: Decodable, Sendable {
+    let hasDiscord: Bool
+    let hasPassword: Bool
+    let email: String?
+    let emailVerified: Bool
+}
+
+struct ReferralStats: Decodable, Sendable {
+    let code: String
+    let totalReferred: Int
+    let totalRewarded: Int
+    let totalRewardCents: Int
+}
+
+struct EarnedAchievement: Decodable, Sendable, Identifiable {
+    let code: String
+    let earnedAt: String
+    var id: String { code }
+}
+
+/// POST /api/v1/checkout body — premium subscription interval.
+struct SubscribeBody: Encodable { let interval: String }   // monthly | six_months | annual
 
 struct UsernameAvailability: Decodable, Sendable {
     let available: Bool

@@ -18,7 +18,7 @@ struct HomeView: View {
                 .tabItem { Label("Fantasy", systemImage: "football.fill") }
             NewsView()
                 .tabItem { Label("News", systemImage: "newspaper.fill") }
-            NavigationStack { account }
+            NavigationStack { AccountView() }
                 .tabItem { Label("Account", systemImage: "person.crop.circle") }
         }
         .task { await load() }
@@ -61,14 +61,6 @@ struct HomeView: View {
             .padding()
         }
         .navigationTitle("Whoosh")
-    }
-
-    private var account: some View {
-        List {
-            LabeledContent("Username", value: "@\(model.currentUsername)")
-            Button("Sign out", role: .destructive) { Task { await model.signOut() } }
-        }
-        .navigationTitle("Account")
     }
 
     private func load() async {
