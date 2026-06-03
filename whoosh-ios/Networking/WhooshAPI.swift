@@ -79,6 +79,25 @@ actor WhooshAPI {
                                   body: WatchlistMutateBody(symbol: symbol, action: add ? "add" : "remove"))
     }
 
+    // House bets / events
+    func events() async throws -> [BetEvent] {
+        struct R: Decodable { let events: [BetEvent] }
+        let r: R = try await get("/api/v1/wb/events")
+        return r.events
+    }
+    func myBets() async throws -> [UserWager] {
+        struct R: Decodable { let wagers: [UserWager] }
+        let r: R = try await get("/api/v1/wb/bets")
+        return r.wagers
+    }
+    @discardableResult
+    func placeWager(eventId: Int, outcomeId: Int, stake: Double) async throws -> Int {
+        struct R: Decodable { let wagerId: Int }
+        let r: R = try await post("/api/v1/wb/wager",
+                                  body: PlaceWagerBody(eventId: eventId, outcomeId: outcomeId, stake: stake))
+        return r.wagerId
+    }
+
     func uploadAvatar(imageData: Data, fileName: String = "avatar.jpg",
                       mimeType: String = "image/jpeg") async throws -> AvatarResult {
         var req = await request("POST", "/api/v1/account/avatar")

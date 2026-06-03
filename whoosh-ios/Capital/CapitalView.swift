@@ -26,18 +26,11 @@ struct CapitalView: View {
                     EquityChart(series: dashboard?.balanceSeries ?? [])
                         .padding(.horizontal)
                     allocationStrip
-                    NavigationLink {
-                        InvestView()
-                    } label: {
-                        HStack {
-                            Label("Invest", systemImage: "chart.line.uptrend.xyaxis")
-                            Spacer()
-                            Image(systemName: "chevron.right").foregroundStyle(.tertiary)
-                        }
-                        .padding().background(Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 12)).padding(.horizontal)
+                    VStack(spacing: 10) {
+                        navRow("Invest", "chart.line.uptrend.xyaxis") { InvestView() }
+                        navRow("House Bets", "dice.fill") { BetsView() }
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal)
                     positionsSection
                     if let error { Text(error).foregroundStyle(.red).font(.footnote).padding(.horizontal) }
                 }
@@ -91,6 +84,23 @@ struct CapitalView: View {
         .frame(maxWidth: .infinity).padding(.vertical, 12)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    @ViewBuilder
+    private func navRow<D: View>(_ title: String, _ icon: String,
+                                 @ViewBuilder destination: @escaping () -> D) -> some View {
+        NavigationLink {
+            destination()
+        } label: {
+            HStack {
+                Label(title, systemImage: icon)
+                Spacer()
+                Image(systemName: "chevron.right").foregroundStyle(.tertiary)
+            }
+            .padding().background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
     }
 
     private func claimBonus() async {

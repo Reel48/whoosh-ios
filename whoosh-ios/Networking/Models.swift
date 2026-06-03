@@ -166,3 +166,36 @@ struct InvestOrderBody: Encodable {
     let shares: Double?       // explicit share count
 }
 struct WatchlistMutateBody: Encodable { let symbol: String; let action: String }  // add | remove
+
+// MARK: - House bets / events
+
+struct BetOutcome: Decodable, Sendable, Identifiable {
+    let id: Int
+    let label: String
+    let oddsDecimal: Double
+    let point: Double?
+}
+
+struct BetEvent: Decodable, Sendable, Identifiable {
+    let id: Int
+    let title: String
+    let status: String
+    let homeTeam: String?
+    let awayTeam: String?
+    let commenceTime: String?
+    let outcomes: [BetOutcome]
+}
+
+struct UserWager: Decodable, Sendable, Identifiable {
+    let id: Int
+    let status: String         // open | won | lost | refunded
+    let stakeCents: Int
+    let payoutCents: Int
+    let potentialCents: Int
+    let outcomeLabel: String
+    let event: EventBrief
+
+    struct EventBrief: Decodable, Sendable { let title: String; let status: String }
+}
+
+struct PlaceWagerBody: Encodable { let eventId: Int; let outcomeId: Int; let stake: Double }
