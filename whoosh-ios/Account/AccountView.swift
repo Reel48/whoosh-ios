@@ -216,8 +216,11 @@ struct AccountView: View {
                 LabeledContent("Achievements", value: "\(count) earned")
             }
             if account?.isAdmin == true {
-                Label("Admin", systemImage: "wrench.and.screwdriver.fill")
-                    .foregroundStyle(.secondary)
+                NavigationLink {
+                    ChatRoleAdminView()
+                } label: {
+                    Label("Chat Roles (Admin)", systemImage: "wrench.and.screwdriver.fill")
+                }
             }
             if let error { Text(error).foregroundStyle(.red).font(.footnote) }
         }

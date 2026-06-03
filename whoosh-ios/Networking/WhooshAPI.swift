@@ -192,6 +192,13 @@ actor WhooshAPI {
         struct R: Decodable { let roles: [ChatRole] }
         let r: R = try await get("/api/v1/chat/admin/roles"); return r.roles
     }
+    @discardableResult
+    func createChatRole(key: String, name: String, color: String, priority: Int) async throws -> ChatRole {
+        struct B: Encodable { let key: String; let name: String; let color: String; let priority: Int }
+        struct R: Decodable { let role: ChatRole }
+        let r: R = try await post("/api/v1/chat/admin/roles", body: B(key: key, name: name, color: color, priority: priority))
+        return r.role
+    }
     func assignChatRole(userId: String, roleId: Int, on: Bool) async throws {
         struct R: Decodable { let ok: Bool }
         let _: R = try await post("/api/v1/chat/admin/roles/assign", body: ChatRoleAssignBody(userId: userId, roleId: roleId, on: on))
