@@ -49,6 +49,7 @@ struct LeagueOverview: Decodable, Sendable, Identifiable {
 struct CrossLeagueRow: Decodable, Sendable, Identifiable {
     let rank: Int
     let rosterId: Int
+    let ownerId: String?
     let teamName: String
     let ownerName: String
     let avatarUrl: String?

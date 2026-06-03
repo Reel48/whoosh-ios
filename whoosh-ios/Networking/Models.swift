@@ -101,7 +101,7 @@ struct ChatMessage: Decodable, Sendable, Identifiable {
 }
 
 struct ChatMe: Decodable, Sendable {
-    let userId: String; let level: Int; let xp: Int; let rank: Int; let roles: [ChatRole]
+    let userId: String; let avatarUrl: String?; let level: Int; let xp: Int; let rank: Int; let roles: [ChatRole]
 }
 
 struct ChatOverview: Decodable, Sendable {

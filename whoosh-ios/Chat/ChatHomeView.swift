@@ -7,6 +7,10 @@ struct ChatHomeView: View {
     @State private var overview: ChatOverview?
     @State private var loaded = false
     @State private var error: String?
+    // Profile stats fetched alongside the overview (kept off the chat overview
+    // call so the channel list loads fast).
+    @State private var wbCents: Int?
+    @State private var fantasyRank: Int?
 
     var body: some View {
         NavigationStack {
@@ -59,9 +63,9 @@ struct ChatHomeView: View {
 
     private func hero(_ me: ChatMe) -> some View {
         let progress = ChatLevels.progress(xp: me.xp, level: me.level)
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
-                ChatAvatar(url: avatarURL, size: 48)
+                ChatAvatar(url: me.avatarUrl, size: 52)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("@\(model.currentUsername)").font(.headline)
                     if let role = me.roles.max(by: { $0.priority < $1.priority }) {
@@ -74,10 +78,18 @@ struct ChatHomeView: View {
                 Spacer()
                 LevelBadge(level: me.level)
             }
+
+            // Profile stats
+            HStack(spacing: 10) {
+                statTile(title: "Whoosh Bucks", value: wbCents.map { Money.wb($0) } ?? "—", systemImage: "bolt.fill")
+                statTile(title: "Chat Rank", value: "#\(me.rank)", systemImage: "bubble.left.fill")
+                statTile(title: "Fantasy", value: fantasyRank.map { "#\($0)" } ?? "—", systemImage: "football.fill")
+            }
+
             VStack(alignment: .leading, spacing: 4) {
                 ProgressView(value: progress).tint(Color.whooshLime)
                 HStack {
-                    Text("Rank #\(me.rank)")
+                    Text("Level \(me.level)")
                     Spacer()
                     Text("\(me.xp) XP · next lvl \(me.level + 1)")
                 }
@@ -88,10 +100,17 @@ struct ChatHomeView: View {
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 18))
     }
 
-    private var avatarURL: String? {
-        // The overview doesn't carry the viewer's avatar; reuse the account one
-        // if the app has it cached on the model in future. For now, nil → glyph.
-        nil
+    private func statTile(title: String, value: String, systemImage: String) -> some View {
+        VStack(spacing: 3) {
+            Label(value, systemImage: systemImage)
+                .labelStyle(.titleAndIcon)
+                .font(.footnote.weight(.bold))
+                .lineLimit(1).minimumScaleFactor(0.7)
+            Text(title).font(.system(size: 9, weight: .semibold)).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
     }
 
     // MARK: Channel row
@@ -135,6 +154,20 @@ struct ChatHomeView: View {
         catch let e as APIError { error = e.message }
         catch { self.error = error.localizedDescription }
         loaded = true
+        await loadStats()
+    }
+
+    /// Profile stats for the hero — fetched separately so they never slow the
+    /// channel list. Whoosh Bucks from the wallet; Fantasy rank from the
+    /// cross-league board matched to the viewer's linked Sleeper account.
+    private func loadStats() async {
+        if let dash = try? await model.api.wallet() {
+            wbCents = dash.allocation.totalEquityCents
+        }
+        if let fantasy = try? await model.api.fantasyOverview(),
+           let me = fantasy.link?.sleeperUserId {
+            fantasyRank = fantasy.board.rows.first(where: { $0.ownerId == me })?.rank
+        }
     }
 }
 
