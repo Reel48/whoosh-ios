@@ -20,6 +20,7 @@ struct ChannelView: View {
     var body: some View {
         VStack(spacing: 0) {
             messageList
+            if !vm.typingNames.isEmpty { typingIndicator }
             if !mentionResults.isEmpty { mentionBar }
             if let data = pendingImage, let img = UIImage(data: data) {
                 attachmentPreview(img)
@@ -35,7 +36,9 @@ struct ChannelView: View {
             ToolbarItem(placement: .principal) {
                 VStack(spacing: 1) {
                     Text(channel.name).font(.headline)
-                    if let d = channel.description, !d.isEmpty {
+                    if vm.onlineCount > 0 {
+                        Text("\(vm.onlineCount) online").font(.caption2).foregroundStyle(Color.whooshGreen)
+                    } else if let d = channel.description, !d.isEmpty {
                         Text(d).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     }
                 }
@@ -90,6 +93,24 @@ struct ChannelView: View {
         return !Calendar.current.isDate(a, inSameDayAs: b)
     }
 
+    private var typingIndicator: some View {
+        HStack(spacing: 6) {
+            ProgressView().controlSize(.mini)
+            Text(typingText).font(.caption).foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 14).padding(.vertical, 4)
+        .transition(.opacity)
+    }
+
+    private var typingText: String {
+        switch vm.typingNames.count {
+        case 1: return "\(vm.typingNames[0]) is typing…"
+        case 2: return "\(vm.typingNames[0]) and \(vm.typingNames[1]) are typing…"
+        default: return "Several people are typing…"
+        }
+    }
+
     private var mentionBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
@@ -128,7 +149,10 @@ struct ChannelView: View {
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 18))
                 .lineLimit(1...5)
-                .onChange(of: draft) { _, v in Task { await refreshMentions(v) } }
+                .onChange(of: draft) { _, v in
+                    Task { await refreshMentions(v) }
+                    if !v.isEmpty { Task { await vm.noteTyping(username: model.currentUsername) } }
+                }
             Button { Task { await submit() } } label: {
                 if sending { ProgressView() }
                 else { Image(systemName: "arrow.up.circle.fill").font(.title) .foregroundStyle(canSend ? Color.whooshGreen : .secondary) }
@@ -217,16 +241,23 @@ struct DayDivider: View {
 @MainActor
 final class ChannelModel: ObservableObject {
     @Published var messages: [ChatMessage] = []
+    @Published var onlineCount = 0
+    @Published var typingNames: [String] = []
     private var api: WhooshAPI?
     private var realtime: RealtimeClient?
     private var channelId = 0
     private var authors: [String: ChatAuthor] = [:]
+    private var typingUsers: [String: String] = [:]            // userId → username
+    private var typingExpiry: [String: Task<Void, Never>] = [:]
+    private var lastTypingSentAt: Date?
+    private var typingStopTask: Task<Void, Never>?
 
     func start(api: WhooshAPI, realtime: RealtimeClient, channel: ChatChannel) async {
         self.api = api; self.realtime = realtime; self.channelId = channel.id
         if let history = try? await api.chatMessages(channelId: channel.id) {
             messages = history
             for m in history { authors[m.author.id] = m.author }
+            if let last = history.last { try? await api.markChatRead(channelId: channel.id, messageId: last.id) }
         }
         await realtime.subscribe(channelId: channel.id) { [weak self] event in
             Task { @MainActor in self?.handle(event) }
@@ -249,7 +280,46 @@ final class ChannelModel: ObservableObject {
             }
         case .reactionChange:
             break // star_count arrives via the message UPDATE above
+        case .presence(let ids):
+            onlineCount = ids.count
+        case .typing(let userId, let username, let isTyping):
+            setTyping(userId: userId, username: username, isTyping: isTyping)
         }
+    }
+
+    // MARK: Typing
+
+    /// Call as the composer changes: throttles a "typing" broadcast and schedules
+    /// a "stopped" after a short idle.
+    func noteTyping(username: String) async {
+        let now = Date()
+        if lastTypingSentAt == nil || now.timeIntervalSince(lastTypingSentAt!) > 2 {
+            lastTypingSentAt = now
+            await realtime?.sendTyping(true, username: username)
+        }
+        typingStopTask?.cancel()
+        typingStopTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
+            self?.lastTypingSentAt = nil
+            await self?.realtime?.sendTyping(false, username: username)
+        }
+    }
+
+    private func setTyping(userId: String, username: String, isTyping: Bool) {
+        typingExpiry[userId]?.cancel()
+        if isTyping {
+            typingUsers[userId] = username
+            typingExpiry[userId] = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(5))
+                guard !Task.isCancelled, let self else { return }
+                self.typingUsers[userId] = nil
+                self.typingNames = Array(self.typingUsers.values).sorted()
+            }
+        } else {
+            typingUsers[userId] = nil
+        }
+        typingNames = Array(typingUsers.values).sorted()
     }
 
     private func appendRecord(_ r: ChatMessageRecord) async {
@@ -260,7 +330,10 @@ final class ChannelModel: ObservableObject {
             author: author ?? ChatAuthor(id: r.userId, username: "unknown", avatarUrl: nil, level: 0, roleColor: "#9aa0a6"),
             body: r.body, imageUrl: r.imageUrl, replyToId: r.replyToId, starCount: r.starCount,
             reactions: [], mine: false, createdAt: r.createdAt, editedAt: r.editedAt)
-        if !messages.contains(where: { $0.id == msg.id }) { messages.append(msg) }
+        if !messages.contains(where: { $0.id == msg.id }) {
+            messages.append(msg)
+            try? await api?.markChatRead(channelId: channelId, messageId: msg.id) // viewing → caught up
+        }
     }
 
     /// Returns the new level if the author leveled up.

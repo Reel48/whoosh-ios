@@ -61,16 +61,20 @@ struct ChatRole: Decodable, Sendable, Identifiable {
     let id: Int; let key: String; let name: String; let color: String; let priority: Int
 }
 
-struct ChatChannel: Decodable, Sendable, Identifiable {
+struct ChatChannel: Decodable, Sendable, Identifiable, Hashable {
     let id: Int
     let categoryId: Int
     let slug: String
     let name: String
     let description: String?
-    let kind: String        // text | media | leaderboard | starboard
+    let kind: String        // text | media | leaderboard | starboard | dm
     let postPolicy: String  // members | admins | system
     let requiredRoleId: Int?
     let canPost: Bool
+    // Added with the unread feature; optional so older API responses still decode.
+    let unread: Int?
+    let lastActivityAt: String?
+    var unreadCount: Int { unread ?? 0 }
 }
 
 struct ChatCategory: Decodable, Sendable, Identifiable {
@@ -117,6 +121,27 @@ struct ChatMember: Decodable, Sendable, Identifiable {
     let id: String; let username: String; let avatarUrl: String?
 }
 
+struct ChatDmConversation: Decodable, Sendable, Identifiable {
+    let channelId: Int
+    let other: ChatAuthor
+    let lastBody: String?
+    let lastAt: String?
+    let unread: Int
+    var id: Int { channelId }
+}
+
+/// A row from the shared per-user notification feed (`/api/v1/wb/notifications`).
+/// Chat uses the `chat_mention` / `chat_dm` kinds; `href` is "chat:<channelId>:<messageId>".
+struct AppNotification: Decodable, Sendable, Identifiable {
+    let id: Int
+    let kind: String
+    let title: String
+    let body: String?
+    let href: String?
+    let readAt: String?
+    let createdAt: String
+}
+
 struct SendChatMessageResult: Decodable, Sendable {
     let message: ChatMessage; let level: Int; let leveledUp: Bool
 }
@@ -125,6 +150,9 @@ struct SendChatMessageBody: Encodable { let body: String?; let imageUrl: String?
 struct ChatReactBody: Encodable { let emoji: String; let on: Bool }
 struct ChatEditBody: Encodable { let body: String }
 struct ChatRoleAssignBody: Encodable { let userId: String; let roleId: Int; let on: Bool }
+struct ChatReadBody: Encodable { let messageId: Int }
+struct ChatDmOpenBody: Encodable { let userId: String }
+struct DeviceTokenBody: Encodable { let token: String; let platform: String }
 
 struct UsernameAvailability: Decodable, Sendable {
     let available: Bool

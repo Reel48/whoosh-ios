@@ -13,6 +13,8 @@ final class AppModel: ObservableObject {
     let auth = SupabaseAuth()
     lazy var api = WhooshAPI(token: { [auth] in await auth.currentAccessToken() })
     lazy var realtime = RealtimeClient(token: { [auth] in await auth.currentAccessToken() })
+    /// In-app notification feed (badge + inbox), shared across the app.
+    lazy var notifications = NotificationsStore(api: api)
 
     /// Initial launch: keep the splash up for at least 2s while we resolve where
     /// to go (sign-in / onboarding / home).
@@ -21,15 +23,28 @@ final class AppModel: ObservableObject {
         let resolved = await resolveState()
         await minimumSplash
         withAnimation(.easeInOut(duration: 0.4)) { state = resolved }
+        if resolved == .home { startHomeServices() }
     }
 
     /// After a successful sign-up / sign-in.
     func didAuthenticate() async {
         let resolved = await resolveState()
         withAnimation { state = resolved }
+        if resolved == .home { startHomeServices() }
     }
 
-    func didFinishOnboarding() { withAnimation { state = .home } }
+    func didFinishOnboarding() {
+        withAnimation { state = .home }
+        startHomeServices()
+    }
+
+    /// Session-scoped services once signed in + onboarded: push registration and
+    /// the notification feed.
+    private func startHomeServices() {
+        PushManager.shared.configure(api: api)
+        PushManager.shared.requestAuthorization()
+        Task { await notifications.refresh() }
+    }
 
     func signOut() async {
         await auth.signOut()

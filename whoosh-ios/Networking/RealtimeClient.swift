@@ -14,6 +14,8 @@ actor RealtimeClient {
         case messageInsert(ChatMessageRecord)
         case messageUpdate(ChatMessageRecord)
         case reactionChange(channelId: Int)
+        case presence(Set<String>)   // user ids currently online in the channel
+        case typing(userId: String, username: String, isTyping: Bool)
     }
 
     private let socketURL: URL
@@ -28,6 +30,9 @@ actor RealtimeClient {
     private var heartbeat: Task<Void, Never>?
     private var running = false
     private var backoff: UInt64 = 1
+    private var myUserId: String?
+    private var topic: String?
+    private var present: Set<String> = []
 
     init(token: @escaping @Sendable () async -> String?,
          supabaseURL: URL = Config.supabaseURL,
@@ -70,8 +75,11 @@ actor RealtimeClient {
         task.resume()
 
         let accessToken = await token()
+        myUserId = accessToken.flatMap(Self.jwtSub)
+        present = []
         ref += 1
         let topic = "realtime:chat:\(channelId)"
+        self.topic = topic
         let join: [String: Any] = [
             "topic": topic,
             "event": "phx_join",
@@ -84,10 +92,18 @@ actor RealtimeClient {
                         ["event": "UPDATE", "schema": "public", "table": "chat_message", "filter": "channel_id=eq.\(channelId)"],
                         ["event": "*", "schema": "public", "table": "chat_reaction", "filter": "channel_id=eq.\(channelId)"],
                     ],
+                    "broadcast": ["self": false],
+                    "presence": ["key": myUserId ?? ""],
                 ],
             ],
         ]
         await send(join)
+        // Announce presence so others see us online.
+        if let myUserId {
+            ref += 1
+            await send(["topic": topic, "event": "presence", "ref": "\(ref)",
+                        "payload": ["event": "track", "payload": ["user_id": myUserId]]])
+        }
         startHeartbeat()
         await receiveLoop()
     }
@@ -144,6 +160,27 @@ actor RealtimeClient {
         guard let data = text.data(using: .utf8),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let event = obj["event"] as? String else { return }
+
+        // Presence: initial state + incremental joins/leaves.
+        if event == "presence_state", let payload = obj["payload"] as? [String: Any] {
+            present = Set(payload.keys)
+            emit(.presence(present)); return
+        }
+        if event == "presence_diff", let payload = obj["payload"] as? [String: Any] {
+            if let joins = payload["joins"] as? [String: Any] { present.formUnion(joins.keys) }
+            if let leaves = payload["leaves"] as? [String: Any] { present.subtract(leaves.keys) }
+            emit(.presence(present)); return
+        }
+        // Typing (broadcast).
+        if event == "broadcast", let payload = obj["payload"] as? [String: Any],
+           (payload["event"] as? String) == "typing",
+           let p = payload["payload"] as? [String: Any],
+           let uid = p["user_id"] as? String, uid != myUserId {
+            emit(.typing(userId: uid, username: (p["username"] as? String) ?? "Someone",
+                         isTyping: (p["typing"] as? Bool) ?? true))
+            return
+        }
+
         guard event == "postgres_changes",
               let payload = obj["payload"] as? [String: Any],
               let change = payload["data"] as? [String: Any],
@@ -165,6 +202,26 @@ actor RealtimeClient {
     }
 
     private func emit(_ event: Event) { handler?(event) }
+
+    /// Broadcast a typing start/stop to the other members of the open channel.
+    func sendTyping(_ isTyping: Bool, username: String) async {
+        guard let topic, let myUserId else { return }
+        ref += 1
+        await send(["topic": topic, "event": "broadcast", "ref": "\(ref)",
+                    "payload": ["type": "broadcast", "event": "typing",
+                                "payload": ["user_id": myUserId, "username": username, "typing": isTyping]]])
+    }
+
+    /// Decode the `sub` (user id) claim from a Supabase access token (JWT).
+    private static func jwtSub(_ jwt: String) -> String? {
+        let parts = jwt.split(separator: ".")
+        guard parts.count >= 2 else { return nil }
+        var b64 = String(parts[1]).replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+        while b64.count % 4 != 0 { b64 += "=" }
+        guard let data = Data(base64Encoded: b64),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        return obj["sub"] as? String
+    }
 }
 
 /// A raw `chat_message` row as it arrives over Realtime (snake_case columns).

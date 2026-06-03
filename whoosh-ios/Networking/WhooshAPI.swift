@@ -188,6 +188,52 @@ actor WhooshAPI {
         let q = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let r: R = try await get("/api/v1/chat/members?q=\(q)"); return r.members
     }
+
+    /// Oldest page above a mark (for "jump to unread"); returns oldest→newest.
+    func chatMessages(channelId: Int, after: Int) async throws -> [ChatMessage] {
+        struct R: Decodable { let messages: [ChatMessage] }
+        let r: R = try await get("/api/v1/chat/channels/\(channelId)/messages?after=\(after)")
+        return r.messages
+    }
+    /// Advance the viewer's last-read mark for a channel.
+    func markChatRead(channelId: Int, messageId: Int) async throws {
+        struct R: Decodable { let ok: Bool }
+        let _: R = try await post("/api/v1/chat/channels/\(channelId)/read", body: ChatReadBody(messageId: messageId))
+    }
+    /// Full-text search over messages the viewer can read.
+    func chatSearch(query: String, channelId: Int? = nil) async throws -> [ChatMessage] {
+        struct R: Decodable { let messages: [ChatMessage] }
+        let q = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        var path = "/api/v1/chat/search?q=\(q)"
+        if let channelId { path += "&channelId=\(channelId)" }
+        let r: R = try await get(path); return r.messages
+    }
+    /// The viewer's DM conversations (most recent first).
+    func chatDms() async throws -> [ChatDmConversation] {
+        struct R: Decodable { let conversations: [ChatDmConversation] }
+        let r: R = try await get("/api/v1/chat/dms"); return r.conversations
+    }
+    /// Open or create the 1:1 DM with another user; returns it as a channel.
+    func openDm(userId: String) async throws -> ChatChannel {
+        struct R: Decodable { let channel: ChatChannel }
+        let r: R = try await post("/api/v1/chat/dms", body: ChatDmOpenBody(userId: userId)); return r.channel
+    }
+
+    // Notifications (shared feed; chat uses chat_mention / chat_dm kinds)
+    func notifications() async throws -> (items: [AppNotification], unread: Int) {
+        struct R: Decodable { let items: [AppNotification]; let unread: Int }
+        let r: R = try await get("/api/v1/wb/notifications"); return (r.items, r.unread)
+    }
+    @discardableResult
+    func markNotificationsRead() async throws -> Int {
+        struct R: Decodable { let unread: Int }
+        let r: R = try await postNoBody("/api/v1/wb/notifications"); return r.unread
+    }
+    /// Register this device's APNs token for push.
+    func registerDeviceToken(_ token: String) async throws {
+        struct R: Decodable { let ok: Bool }
+        let _: R = try await post("/api/v1/account/device-token", body: DeviceTokenBody(token: token, platform: "ios"))
+    }
     func chatRoles() async throws -> [ChatRole] {
         struct R: Decodable { let roles: [ChatRole] }
         let r: R = try await get("/api/v1/chat/admin/roles"); return r.roles
