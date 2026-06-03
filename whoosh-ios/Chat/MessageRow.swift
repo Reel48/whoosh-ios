@@ -36,8 +36,10 @@ struct MessageRow: View {
                         if message.editedAt != nil { Text("(edited)").font(.caption2).foregroundStyle(.tertiary) }
                     }
                 }
-                if !message.body.isEmpty {
-                    Text(Self.styledBody(message.body)).font(.body).tint(Color.whooshGreen)
+                // The raw URL text is stripped from the body — only the rich
+                // embed represents the link. Any surrounding text still shows.
+                if !cleanedBody.isEmpty {
+                    Text(Self.styledMentions(cleanedBody)).font(.body)
                 }
                 if let link = Self.firstLink(in: message.body) {
                     LinkPreview(url: link)
@@ -80,41 +82,48 @@ struct MessageRow: View {
     private static let linkDetector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
     private static let mentionRegex = try? NSRegularExpression(pattern: "@[A-Za-z0-9_]{3,20}")
 
-    private enum Token { case link(URL), mention }
+    /// The body with all URLs removed and leftover whitespace collapsed — links
+    /// are represented solely by the embed, never as raw text.
+    private var cleanedBody: String { Self.stripLinks(message.body) }
 
-    /// Build the message body as an `AttributedString`, tinting `@mentions` and
-    /// turning URLs into tappable `.link` runs (links open via the system). Done
-    /// by concatenating styled segments — no String↔AttributedString index
-    /// casting, and link ranges take precedence over overlapping mentions.
-    private static func styledBody(_ text: String) -> AttributedString {
+    private static func stripLinks(_ text: String) -> String {
         let ns = text as NSString
         let full = NSRange(location: 0, length: ns.length)
-        var tokens: [(NSRange, Token)] = []
-        linkDetector?.matches(in: text, range: full).forEach { m in
-            if let u = m.url { tokens.append((m.range, .link(u))) }
+        guard let matches = linkDetector?.matches(in: text, range: full), !matches.isEmpty else {
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
         }
-        mentionRegex?.matches(in: text, range: full).forEach { tokens.append(($0.range, .mention)) }
-        guard !tokens.isEmpty else { return AttributedString(text) }
-        tokens.sort { $0.0.location < $1.0.location }
+        var out = ""
+        var idx = 0
+        for m in matches {
+            if m.range.location > idx {
+                out += ns.substring(with: NSRange(location: idx, length: m.range.location - idx))
+            }
+            idx = m.range.location + m.range.length
+        }
+        if idx < ns.length { out += ns.substring(from: idx) }
+        // Collapse the gaps left behind by removed URLs.
+        let collapsed = out.replacingOccurrences(of: "[ \\t]{2,}", with: " ", options: .regularExpression)
+            .replacingOccurrences(of: "\\n{3,}", with: "\n\n", options: .regularExpression)
+        return collapsed.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
+    /// Tint `@mentions` in the brand green (segment concatenation — no index casting).
+    private static func styledMentions(_ text: String) -> AttributedString {
+        guard let re = mentionRegex else { return AttributedString(text) }
+        let ns = text as NSString
+        let matches = re.matches(in: text, range: NSRange(location: 0, length: ns.length))
+        guard !matches.isEmpty else { return AttributedString(text) }
         var result = AttributedString()
         var idx = 0
-        for (range, token) in tokens {
-            if range.location < idx { continue } // skip overlap (link already consumed it)
-            if range.location > idx {
-                result += AttributedString(ns.substring(with: NSRange(location: idx, length: range.location - idx)))
+        for m in matches {
+            if m.range.location > idx {
+                result += AttributedString(ns.substring(with: NSRange(location: idx, length: m.range.location - idx)))
             }
-            var seg = AttributedString(ns.substring(with: range))
-            switch token {
-            case .link(let u):
-                seg.link = u
-                seg.foregroundColor = Color.whooshGreen
-            case .mention:
-                seg.foregroundColor = Color.whooshGreen
-                seg.font = .body.weight(.semibold)
-            }
+            var seg = AttributedString(ns.substring(with: m.range))
+            seg.foregroundColor = Color.whooshGreen
+            seg.font = .body.weight(.semibold)
             result += seg
-            idx = range.location + range.length
+            idx = m.range.location + m.range.length
         }
         if idx < ns.length { result += AttributedString(ns.substring(from: idx)) }
         return result

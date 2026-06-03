@@ -15,19 +15,20 @@ struct LinkPreview: View {
 
     var body: some View {
         if isImage {
+            // Show the whole image, as large as the column allows.
             AsyncImage(url: url) { img in
-                img.resizable().scaledToFill()
+                img.resizable().scaledToFit()
             } placeholder: {
-                Color(.secondarySystemBackground)
+                RoundedRectangle(cornerRadius: 14).fill(Color(.secondarySystemBackground)).frame(height: 160)
             }
-            .frame(maxWidth: 240, maxHeight: 240)
+            .frame(maxWidth: .infinity, maxHeight: 320, alignment: .leading)
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .contentShape(RoundedRectangle(cornerRadius: 14))
             .onTapGesture { openURL(url) }
             .padding(.top, 4)
         } else {
             LinkMetadataView(url: url)
-                .frame(maxWidth: 280, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 4)
         }
     }
@@ -99,7 +100,9 @@ private struct LPLinkViewRepresentable: UIViewRepresentable {
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: LPLinkView, context: Context) -> CGSize? {
-        let width = min(proposal.width ?? 280, 280)
+        // Fill the available message-column width (capped for iPad) so the embed
+        // shows as much content as possible.
+        let width = min(proposal.width ?? 320, 360)
         let fit = uiView.systemLayoutSizeFitting(
             CGSize(width: width, height: UIView.layoutFittingCompressedSize.height),
             withHorizontalFittingPriority: .required, verticalFittingPriority: .fittingSizeLevel)
