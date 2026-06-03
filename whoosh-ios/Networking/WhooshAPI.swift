@@ -149,6 +149,13 @@ actor WhooshAPI {
         return r.pools
     }
     func fantasyPool(_ id: String) async throws -> PoolDetail { try await get("/api/v1/fantasy/pools/\(id)") }
+    /// Hosted Stripe Checkout URL for a pool/league group's entry fee (web link-out).
+    func fantasyCheckout(groupKey: String) async throws -> URL {
+        let r: CheckoutURL = try await post("/api/v1/fantasy/checkout",
+                                            body: FantasyCheckoutBody(groupKey: groupKey))
+        guard let u = URL(string: r.url) else { throw APIError.unknown }
+        return u
+    }
     @discardableResult
     func linkSleeper(username: String) async throws -> FantasyLink? {
         struct R: Decodable { let link: FantasyLink? }

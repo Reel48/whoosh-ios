@@ -100,6 +100,11 @@ struct PoolDetail: Decodable, Sendable {
     let season: String
     let status: String?
     let entries: [PoolEntry]
+    let sleeperUrl: String
+    /// Whether the signed-in user has paid into / joined this pool.
+    let joined: Bool
+    /// Best link to open the league in the Sleeper app (invite link, else public URL).
+    var sleeperOpenURL: URL? { URL(string: config.joinUrl ?? sleeperUrl) }
 }
 
 struct MatchupTeam: Decodable, Sendable {
@@ -145,3 +150,4 @@ struct MatchupsResponse: Decodable, Sendable {
 }
 
 struct LinkSleeperBody: Encodable { let username: String?; let action: String? }
+struct FantasyCheckoutBody: Encodable { let groupKey: String }

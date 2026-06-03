@@ -1489,11 +1489,10 @@ components:
         - pools
       description: GET /api/v1/fantasy/pools
     FantasyPoolDetailResponse:
-      $ref: "#/components/schemas/PoolDetail"
-      description: GET /api/v1/fantasy/pools/[leagueId]
-    PoolDetail:
       type: object
       properties:
+        joined:
+          type: boolean
         season:
           type: string
         status:
@@ -1530,12 +1529,15 @@ components:
         - config
         - displayName
         - entries
+        - joined
         - kind
         - logoUrl
         - season
         - sleeperUrl
         - status
         - totalEntries
+      description: GET /api/v1/fantasy/pools/[leagueId] — pool detail + the user's
+        join status.
     PoolEntry:
       type: object
       properties:
