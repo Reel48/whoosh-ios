@@ -135,6 +135,12 @@ actor WhooshAPI {
         let r: R = try await post("/api/v1/news/swipe", body: body)
         return r.points
     }
+    /// Live ESPN scores across the major leagues (public; no bearer needed).
+    func scores() async throws -> [Game] {
+        struct R: Decodable { let games: [Game] }
+        let r: R = try await get("/api/v1/news/scores")
+        return r.games
+    }
 
     // Fantasy
     func fantasyOverview() async throws -> FantasyOverview { try await get("/api/v1/fantasy/overview") }

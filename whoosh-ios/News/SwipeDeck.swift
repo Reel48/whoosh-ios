@@ -8,6 +8,9 @@ struct SwipeDeck: View {
     @Binding var articles: [Article]
     /// League label shown on each card (e.g. "NFL").
     var sportLabel: String? = nil
+    /// Fixed card height — keeps the deck compact rather than stretching to fill
+    /// (so it leaves room for the scoreboard above). Tune against the simulator.
+    var cardHeight: CGFloat = 460
     /// Called when the top card is decided. `direction` is "right" (keep) / "left" (pass).
     var onDecide: (Article, String) async -> Void
     /// Undo the most recent decision (re-inserts the card).
@@ -29,12 +32,13 @@ struct SwipeDeck: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity)
+            .frame(height: cardHeight)
 
             controls
                 .padding(.bottom, 8)
+            Spacer(minLength: 0)
         }
-        .frame(maxHeight: .infinity)
     }
 
     // MARK: Cards

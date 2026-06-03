@@ -12,6 +12,7 @@ struct NewsView: View {
     @State private var loadingDeck = false
     @State private var community: [WhooshEntry] = []
     @State private var mineEntries: [WhooshEntry] = []
+    @State private var games: [Game] = []
 
     var body: some View {
         NavigationStack {
@@ -19,7 +20,14 @@ struct NewsView: View {
                 Text("Sports News")
                     .font(.largeTitle.bold())
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal).padding(.top, 8).padding(.bottom, 12)
+                    .padding(.horizontal).padding(.top, 8).padding(.bottom, 10)
+
+                // Live ESPN scoreboard, pinned across all modes (web parity).
+                if !games.isEmpty {
+                    ScoreTicker(games: games)
+                        .padding(.bottom, 10)
+                        .transition(.opacity)
+                }
 
                 Picker("", selection: $mode) {
                     ForEach(Mode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
@@ -34,6 +42,17 @@ struct NewsView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .task(id: mode) { await loadForMode() }
+            .task { await refreshScoresLoop() }
+        }
+    }
+
+    /// Poll live scores every ~45s for the view's lifetime (mirrors web's 45s).
+    private func refreshScoresLoop() async {
+        while !Task.isCancelled {
+            if let g = try? await model.api.scores() {
+                withAnimation(.easeInOut) { games = g }
+            }
+            try? await Task.sleep(for: .seconds(45))
         }
     }
 

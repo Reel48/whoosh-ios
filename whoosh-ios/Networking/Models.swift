@@ -353,6 +353,28 @@ struct SwipeBody: Encodable {
     }
 }
 
+// MARK: - Live scores (ESPN scoreboard)
+
+/// One side of a game (mirrors the API `Team` in src/lib/news/scores.ts).
+struct ScoreTeam: Decodable, Sendable {
+    let abbr: String
+    let logo: String?
+    let score: String?
+}
+
+/// A live/upcoming/finished game from `GET /api/v1/news/scores`.
+/// `state` is "pre" (upcoming) | "in" (live) | "post" (final).
+struct Game: Decodable, Sendable, Identifiable {
+    let id: String
+    let league: String
+    let state: String
+    let detail: String
+    let away: ScoreTeam
+    let home: ScoreTeam
+    let link: String?
+    let startsAt: String?
+}
+
 /// The catalog of sports for the swipe-deck picker (mirrors the web SPORTS).
 struct NewsSport: Identifiable, Hashable { let key: String; let label: String; var id: String { key } }
 enum NewsCatalog {
