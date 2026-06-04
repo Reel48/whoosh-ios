@@ -19,6 +19,7 @@ struct SymbolView: View {
     @State private var watched = false
     @State private var busy = false
     @State private var loading = true
+    @State private var loadFailed = false
     @State private var message: String?
     @State private var isError = false
 
@@ -31,17 +32,21 @@ struct SymbolView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                header
-                chartSection
-                statsSection
-                orderSection
-                if let message {
-                    Text(message).foregroundStyle(isError ? Color.bad : Color.good).font(.footnote)
-                        .padding(.horizontal)
+            if loadFailed && detail == nil {
+                failedState
+            } else {
+                VStack(alignment: .leading, spacing: 20) {
+                    header
+                    chartSection
+                    statsSection
+                    orderSection
+                    if let message {
+                        Text(message).foregroundStyle(isError ? Color.bad : Color.good).font(.footnote)
+                            .padding(.horizontal)
+                    }
                 }
+                .padding(.vertical)
             }
-            .padding(.vertical)
         }
         .navigationTitle(symbol)
         .navigationBarTitleDisplayMode(.inline)
@@ -56,6 +61,26 @@ struct SymbolView: View {
             watched = ((try? await model.api.watchlist()) ?? []).contains { $0.symbol == symbol }
             await load()
         }
+    }
+
+    // MARK: Failed state
+
+    private var failedState: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "wifi.exclamationmark").font(.largeTitle).foregroundStyle(.secondary)
+            Text("Couldn't load \(symbol)").font(.headline)
+            Text("Market data is taking a moment. Please try again.")
+                .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            Button {
+                Task { await load() }
+            } label: {
+                Text("Retry").bold().padding(.horizontal, 24).padding(.vertical, 10)
+                    .background(Color.brandBlue).foregroundStyle(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .buttonStyle(.pressable)
+        }
+        .frame(maxWidth: .infinity).padding(.horizontal, 32).padding(.top, 80)
     }
 
     // MARK: Header
@@ -96,7 +121,10 @@ struct SymbolView: View {
                 .frame(height: 200).padding(.horizontal)
             } else {
                 RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground))
-                    .frame(height: 200).overlay { if loading { ProgressView() } else { Text("No price history").foregroundStyle(.secondary).font(.footnote) } }
+                    .frame(height: 200).overlay {
+                        if loading { ProgressView() }
+                        else { Text("Chart unavailable right now").foregroundStyle(.secondary).font(.footnote) }
+                    }
                     .padding(.horizontal)
             }
             Picker("Range", selection: $range) {
@@ -168,8 +196,16 @@ struct SymbolView: View {
 
     private func load() async {
         loading = true
-        detail = try? await model.api.symbolDetail(symbol, range: range)
-        loading = false
+        defer { loading = false }
+        do {
+            detail = try await model.api.symbolDetail(symbol, range: range)
+            loadFailed = false
+        } catch {
+            // Keep any previously-loaded detail (e.g. a range switch that
+            // failed) so we don't blank a working screen; only surface the
+            // failed state when we have nothing to show.
+            if detail == nil { loadFailed = true }
+        }
     }
 
     private func submit() async {
