@@ -1853,6 +1853,10 @@ components:
             type: string
           description: Image URLs for the post, shown at the bottom. Empty when none are
             provided.
+        sport:
+          $ref: "#/components/schemas/SportKey"
+          description: Which sport this article came from (set by `fetchFeed`; key for the
+            ALL feed).
       required:
         - title
         - description
