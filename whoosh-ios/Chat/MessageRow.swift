@@ -88,6 +88,9 @@ struct MessageRow: View {
         case "poll": PollCard(message: message, onVote: onVote)
         case "file": FileCard(message: message)
         case "welcome": WelcomeCard(message: message)
+        case "score": ScoreShareCard(message: message)
+        case "gift": GiftCard(message: message)
+        case "rank": RankCard(message: message)
         default: defaultContent
         }
     }
