@@ -300,10 +300,19 @@ struct ChannelView: View {
             }
         }
         var imageUrl: String?
+        var kind: String?
         if let data = pendingImage {
-            imageUrl = try? await model.api.uploadChatImage(imageData: data).absoluteString
+            // GIF magic bytes ("GIF8") → upload as image/gif so it stores with a
+            // .gif URL and renders animated; otherwise treat as a JPEG photo.
+            let isGif = data.starts(with: [0x47, 0x49, 0x46, 0x38])
+            imageUrl = try? await model.api.uploadChatImage(
+                imageData: data,
+                fileName: isGif ? "image.gif" : "image.jpg",
+                mimeType: isGif ? "image/gif" : "image/jpeg"
+            ).absoluteString
+            if isGif { kind = "gif" }
         }
-        let leveledTo = await vm.send(body: draft, imageUrl: imageUrl)
+        let leveledTo = await vm.send(body: draft, imageUrl: imageUrl, kind: kind)
         draft = ""; pendingImage = nil; photoItem = nil; mentionResults = []
         if let lvl = leveledTo {
             Haptics.success()

@@ -16,6 +16,13 @@ struct LinkPreview: View {
     var body: some View {
         if let kind = SocialEmbed.kind(for: url) {
             SocialEmbed(url: url, kind: kind)
+        } else if url.pathExtension.lowercased() == "gif" {
+            AnimatedGIFView(url: url)
+                .frame(maxWidth: .infinity, maxHeight: 380, alignment: .leading)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .contentShape(RoundedRectangle(cornerRadius: 14))
+                .onTapGesture { openURL(url) }
+                .padding(.top, 4)
         } else if isImage {
             AsyncImage(url: url) { img in
                 img.resizable().scaledToFit()
