@@ -294,6 +294,12 @@ actor WhooshAPI {
         let r: R = try await postNoBody("/api/v1/fantasy/pools/\(poolId)/chat")
         return r.channel
     }
+    /// Open the cross-league Power Rankings chat (everyone on the leaderboard).
+    func openRankingsChat() async throws -> ChatChannel {
+        struct R: Decodable { let channel: ChatChannel }
+        let r: R = try await postNoBody("/api/v1/fantasy/rankings/chat")
+        return r.channel
+    }
 
     /// Hosted Stripe Checkout URL for a pool/league group's entry fee (web link-out).
     func fantasyCheckout(groupKey: String) async throws -> URL {
