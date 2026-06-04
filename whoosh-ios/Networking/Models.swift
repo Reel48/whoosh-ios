@@ -447,6 +447,8 @@ struct Article: Decodable, Sendable, Identifiable {
     let author: String?
     let guid: String
     let images: [String]
+    /// Which sport this article came from (set by the API; present on the ALL feed).
+    let sport: String?
     var id: String { guid }
     var imageUrl: String? { images.first }
 }
@@ -511,6 +513,7 @@ struct Game: Decodable, Sendable, Identifiable {
 struct NewsSport: Identifiable, Hashable { let key: String; let label: String; var id: String { key } }
 enum NewsCatalog {
     static let sports: [NewsSport] = [
+        .init(key: "all", label: "ALL"),
         .init(key: "nfl", label: "NFL"),
         .init(key: "nba", label: "NBA"),
         .init(key: "mlb", label: "MLB"),

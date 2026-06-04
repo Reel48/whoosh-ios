@@ -6,6 +6,17 @@ struct ArticleCard: View {
     let article: Article
     var sportLabel: String? = nil
 
+    /// Prefer the article's own sport (so the ALL feed labels each card with its
+    /// real sport); fall back to the deck's single-sport label.
+    private var displayLabel: String? {
+        if let key = article.sport,
+           let label = NewsCatalog.sports.first(where: { $0.key == key })?.label,
+           label != "ALL" {
+            return label
+        }
+        return sportLabel == "ALL" ? nil : sportLabel
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let urlStr = article.imageUrl, let url = URL(string: urlStr) {
@@ -23,8 +34,8 @@ struct ArticleCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 // Context strip: league · source · when
                 HStack(spacing: 8) {
-                    if let sportLabel {
-                        Text(sportLabel.uppercased())
+                    if let displayLabel {
+                        Text(displayLabel.uppercased())
                             .font(.caption2.bold())
                             .padding(.horizontal, 8).padding(.vertical, 3)
                             .background(Color.whooshLime).foregroundStyle(Color.whooshInk)

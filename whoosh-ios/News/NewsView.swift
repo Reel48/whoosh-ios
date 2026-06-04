@@ -7,7 +7,7 @@ struct NewsView: View {
 
     private enum Mode: String, CaseIterable { case swipe = "Swipe", community = "Community", mine = "My Keeps" }
     @State private var mode: Mode = .swipe
-    @State private var sport = "nfl"
+    @State private var sport = "all"
     @State private var deck: [Article] = []
     @State private var loadingDeck = false
     @State private var community: [WhooshEntry] = []
@@ -88,7 +88,9 @@ struct NewsView: View {
                     articles: $deck,
                     sportLabel: NewsCatalog.sports.first { $0.key == sport }?.label,
                     onDecide: { article, direction in
-                        _ = try? await model.api.swipe(sport: sport, direction: direction, article: article)
+                        // On the ALL feed, attribute the keep to the card's own
+                        // sport so it counts toward the right chat channel.
+                        _ = try? await model.api.swipe(sport: article.sport ?? sport, direction: direction, article: article)
                     },
                     onUndo: { article in
                         _ = try? await model.api.undoSwipe(guid: article.guid)
