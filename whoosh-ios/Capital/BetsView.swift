@@ -83,8 +83,8 @@ struct BetsView: View {
         } label: {
             Text(title).font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 14).padding(.vertical, 7)
-                .background(active ? Color.brandLime : Color(.secondarySystemBackground), in: Capsule())
-                .foregroundStyle(active ? Color.whooshInk : .primary)
+                .background(active ? Color.brandBlue : Color(.secondarySystemBackground), in: Capsule())
+                .foregroundStyle(active ? Color.white : .primary)
         }
         .buttonStyle(.plain)
     }

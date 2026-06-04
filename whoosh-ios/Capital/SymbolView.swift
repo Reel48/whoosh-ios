@@ -155,7 +155,7 @@ struct SymbolView: View {
             Button(action: { Task { await submit() } }) {
                 Group { if busy { ProgressView() } else { Text(side == "buy" ? "Buy \(symbol)" : "Sell \(symbol)").bold() } }
                     .frame(maxWidth: .infinity).padding()
-                    .background(Color.whooshLime).foregroundStyle(Color.whooshInk)
+                    .background(Color.brandBlue).foregroundStyle(Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .opacity((amount ?? 0) > 0 && !busy ? 1 : 0.5)
             }

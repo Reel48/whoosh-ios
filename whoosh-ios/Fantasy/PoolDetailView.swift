@@ -43,8 +43,8 @@ struct PoolDetailView: View {
                         Label("Open in Sleeper", systemImage: "arrow.up.forward.app.fill")
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 12).padding(.vertical, 8)
-                            .background(Color.whooshLime, in: Capsule())
-                            .foregroundStyle(Color.whooshInk)
+                            .background(Color.brandBlue, in: Capsule())
+                            .foregroundStyle(Color.white)
                     }
                     .buttonStyle(.plain)
                 }
@@ -78,7 +78,7 @@ struct PoolDetailView: View {
                         if busy { ProgressView() } else { Text(joinLabel(p)).bold() }
                     }
                     .frame(maxWidth: .infinity).padding()
-                    .background(Color.whooshLime).foregroundStyle(Color.whooshInk)
+                    .background(Color.brandBlue).foregroundStyle(Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 .buttonStyle(.plain).disabled(busy)

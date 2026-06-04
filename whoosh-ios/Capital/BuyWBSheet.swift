@@ -30,8 +30,8 @@ struct BuyWBSheet: View {
                         } label: {
                             Text("$\(Int(p))").font(.headline)
                                 .frame(maxWidth: .infinity).padding(.vertical, 14)
-                                .background(amount == p ? Color.whooshLime : Color(.secondarySystemBackground))
-                                .foregroundStyle(amount == p ? Color.whooshInk : .primary)
+                                .background(amount == p ? Color.brandBlue : Color(.secondarySystemBackground))
+                                .foregroundStyle(amount == p ? Color.white : .primary)
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                     }
@@ -43,7 +43,7 @@ struct BuyWBSheet: View {
                 Button(action: { Task { await checkout() } }) {
                     Group { if busy { ProgressView() } else { Text("Continue to checkout").bold() } }
                         .frame(maxWidth: .infinity).padding()
-                        .background(Color.whooshLime).foregroundStyle(Color.whooshInk)
+                        .background(Color.brandBlue).foregroundStyle(Color.white)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .padding(.horizontal)

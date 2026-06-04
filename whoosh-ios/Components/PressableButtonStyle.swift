@@ -13,15 +13,15 @@ struct PressableButtonStyle: ButtonStyle {
     }
 }
 
-/// Primary lime CTA — full-width pill, ink text, medium impact on press.
-struct LimeButtonStyle: ButtonStyle {
+/// Primary CTA — full-width blue pill, white text, medium impact on press.
+struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
-            .foregroundStyle(Color.whooshInk)
+            .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.md)
-            .background(Color.whooshLime, in: RoundedRectangle(cornerRadius: Spacing.radius))
+            .background(Color.brandBlue, in: RoundedRectangle(cornerRadius: Spacing.radius))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .opacity(configuration.isPressed ? 0.9 : 1)
             .animation(Anim.quick, value: configuration.isPressed)
@@ -48,9 +48,9 @@ extension ButtonStyle where Self == PressableButtonStyle {
     /// Subtle press scale + haptic for icon/inline buttons.
     static var pressable: PressableButtonStyle { .init() }
 }
-extension ButtonStyle where Self == LimeButtonStyle {
-    /// Primary lime CTA.
-    static var lime: LimeButtonStyle { .init() }
+extension ButtonStyle where Self == PrimaryButtonStyle {
+    /// Primary blue CTA.
+    static var primaryFill: PrimaryButtonStyle { .init() }
 }
 extension ButtonStyle where Self == SecondaryButtonStyle {
     /// Secondary neutral fill.

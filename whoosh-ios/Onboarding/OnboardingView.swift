@@ -61,7 +61,7 @@ struct OnboardingView: View {
             } label: {
                 if submitting { ProgressView().tint(Color.whooshInk) } else { Text("Enter Whoosh") }
             }
-            .buttonStyle(.lime)
+            .buttonStyle(.primaryFill)
             .opacity(canSubmit ? 1 : 0.5)
             .disabled(!canSubmit)
             .padding(.horizontal, 24)

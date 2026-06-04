@@ -63,8 +63,8 @@ struct MessageRow: View {
                                 }
                                 .font(.caption2.weight(.medium))
                                 .padding(.horizontal, 8).padding(.vertical, 4)
-                                .background(r.mine ? Color.whooshLime.opacity(0.30) : Color(.secondarySystemBackground), in: Capsule())
-                                .overlay(Capsule().stroke(r.mine ? Color.whooshGreen.opacity(0.5) : .clear, lineWidth: 1))
+                                .background(r.mine ? Color.brandBlue.opacity(0.30) : Color(.secondarySystemBackground), in: Capsule())
+                                .overlay(Capsule().stroke(r.mine ? Color.brandBlue.opacity(0.5) : .clear, lineWidth: 1))
                                 .scaleEffect(r.mine ? 1.04 : 1)
                             }
                             .buttonStyle(.plain)

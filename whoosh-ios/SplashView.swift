@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// Launch splash: a full lime-green screen with the black lightning bolt fading
-/// (and gently scaling) in. Shown for ~2s at launch, then `RootView` advances to
-/// account creation. Timing constants live here for easy tweaking.
+/// Launch splash: a full blue screen (the brand's primary color) with the white
+/// lightning bolt + wordmark fading (and gently scaling) in. Shown for ~2s at
+/// launch, then `RootView` advances to account creation. Timing constants live
+/// here for easy tweaking.
 struct SplashView: View {
     /// How long the bolt takes to fade in.
     private let fadeInDuration: Double = 1.0
@@ -11,7 +12,7 @@ struct SplashView: View {
 
     var body: some View {
         ZStack {
-            Color.whooshLime
+            Color.brandBlue
                 .ignoresSafeArea()
 
             VStack(spacing: 22) {
@@ -26,7 +27,7 @@ struct SplashView: View {
                     .scaledToFit()
                     .frame(height: 40)
             }
-            .foregroundStyle(Color.whooshInk)
+            .foregroundStyle(Color.white)
             .opacity(shown ? 1 : 0)
             .scaleEffect(shown ? 1 : 0.92)
             .accessibilityLabel("Whoosh")
