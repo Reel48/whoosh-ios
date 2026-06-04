@@ -19,12 +19,22 @@ struct ChannelView: View {
     @State private var editing: ChatMessage?
     @State private var mentionResults: [ChatMember] = []
     @State private var levelToast: Int?
+    /// Inline note when a slash command is mis-used (e.g. unknown ticker).
+    @State private var commandError: String?
+
+    /// Slash commands offered in the composer. Each builds a structured message.
+    private static let slashCommands: [(name: String, hint: String)] = [
+        ("/spoiler", "hide text until tapped"),
+        ("/stocks", "share a stock quote — /stocks AAPL"),
+    ]
 
     var body: some View {
         VStack(spacing: 0) {
             messageList
             if !vm.typingNames.isEmpty { typingIndicator }
             if !mentionResults.isEmpty { mentionBar }
+            if !slashSuggestions.isEmpty { slashBar }
+            if let err = commandError { footerNote(err) }
             if let data = pendingImage, let img = UIImage(data: data) {
                 attachmentPreview(img)
             }
@@ -133,6 +143,32 @@ struct ChannelView: View {
         .background(.bar)
     }
 
+    /// Slash commands matching the current draft (only when it's a bare `/cmd`
+    /// with no argument yet — so it disappears once the user starts the body).
+    private var slashSuggestions: [(name: String, hint: String)] {
+        let t = draft
+        guard t.hasPrefix("/"), !t.contains(" "), !t.contains("\n") else { return [] }
+        return Self.slashCommands.filter { $0.name.hasPrefix(t.lowercased()) }
+    }
+
+    private var slashBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(slashSuggestions, id: \.name) { c in
+                    Button { draft = c.name + " " } label: {
+                        HStack(spacing: 6) {
+                            Text(c.name).font(.caption.weight(.bold)).foregroundStyle(Color.brandBlue)
+                            Text(c.hint).font(.caption2).foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(Color(.secondarySystemBackground), in: Capsule())
+                    }.buttonStyle(.plain)
+                }
+            }.padding(.horizontal, 12).padding(.vertical, 6)
+        }
+        .background(.bar)
+    }
+
     private func attachmentPreview(_ img: UIImage) -> some View {
         HStack {
             Image(uiImage: img).resizable().scaledToFill()
@@ -156,6 +192,7 @@ struct ChannelView: View {
                 .lineLimit(1...5)
                 .onChange(of: draft) { _, v in
                     Task { await refreshMentions(v) }
+                    if commandError != nil { commandError = nil }
                     if !v.isEmpty { Task { await vm.noteTyping(username: model.currentUsername) } }
                 }
             Button { Task { await submit() } } label: {
@@ -211,6 +248,14 @@ struct ChannelView: View {
             await vm.edit(editing, body: draft)
             self.editing = nil; draft = ""; return
         }
+        // Slash commands build a structured message instead of plain text.
+        if pendingImage == nil, draft.hasPrefix("/") {
+            switch await handleSlashCommand(draft) {
+            case .sent: draft = ""; mentionResults = []; commandError = nil; return
+            case .error(let msg): commandError = msg; return       // keep draft to fix
+            case .notACommand: break                                // fall through → plain send
+            }
+        }
         var imageUrl: String?
         if let data = pendingImage {
             imageUrl = try? await model.api.uploadChatImage(imageData: data).absoluteString
@@ -242,6 +287,43 @@ struct ChannelView: View {
             draft.replaceSubrange(at.lowerBound..., with: "@\(username) ")
         }
         mentionResults = []
+    }
+
+    private enum SlashOutcome { case sent, error(String), notACommand }
+
+    /// Parse + execute a `/command arg…`. Returns `.notACommand` for anything we
+    /// don't recognize (so it sends as normal text).
+    private func handleSlashCommand(_ raw: String) async -> SlashOutcome {
+        let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = text.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true).map(String.init)
+        let cmd = (parts.first ?? "").lowercased()
+        let arg = parts.count > 1 ? parts[1].trimmingCharacters(in: .whitespaces) : ""
+
+        switch cmd {
+        case "/spoiler":
+            guard !arg.isEmpty else { return .error("Usage: /spoiler <text>") }
+            _ = await vm.send(body: "🙈 Spoiler", imageUrl: nil, kind: "spoiler",
+                              data: .object(["text": .string(arg)]))
+            return .sent
+
+        case "/stocks", "/stock":
+            let symbol = (arg.split(separator: " ").first.map(String.init) ?? "").uppercased()
+            guard !symbol.isEmpty else { return .error("Usage: /stocks <symbol>") }
+            guard let q = try? await model.api.quote(symbol) else {
+                return .error("Couldn't find a quote for \(symbol).")
+            }
+            var fields: [String: JSONValue] = [
+                "symbol": .string(q.symbol),
+                "priceCents": .number(Double(q.priceCents)),
+            ]
+            if let prev = q.prevCloseCents { fields["prevCloseCents"] = .number(Double(prev)) }
+            let summary = "📈 \(q.symbol) \(Money.wb(q.priceCents))"
+            _ = await vm.send(body: summary, imageUrl: nil, kind: "stock", data: .object(fields))
+            return .sent
+
+        default:
+            return .notACommand
+        }
     }
 }
 
@@ -379,10 +461,10 @@ final class ChannelModel: ObservableObject {
     }
 
     /// Returns the new level if the author leveled up.
-    func send(body: String, imageUrl: String?) async -> Int? {
+    func send(body: String, imageUrl: String?, kind: String? = nil, data: JSONValue? = nil) async -> Int? {
         guard let api else { return nil }
         let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let result = try? await api.sendChatMessage(channelId: channelId, body: text.isEmpty ? nil : text, imageUrl: imageUrl) else { return nil }
+        guard let result = try? await api.sendChatMessage(channelId: channelId, body: text.isEmpty ? nil : text, imageUrl: imageUrl, kind: kind, data: data) else { return nil }
         authors[result.message.author.id] = result.message.author
         if !messages.contains(where: { $0.id == result.message.id }) { messages.append(result.message) }
         return result.leveledUp ? result.level : nil

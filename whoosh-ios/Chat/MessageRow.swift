@@ -36,20 +36,7 @@ struct MessageRow: View {
                         if message.editedAt != nil { Text("(edited)").font(.caption2).foregroundStyle(.tertiary) }
                     }
                 }
-                // The raw URL text is stripped from the body — only the rich
-                // embed represents the link. Any surrounding text still shows.
-                if !cleanedBody.isEmpty {
-                    Text(Self.styledMentions(cleanedBody)).font(.body)
-                }
-                if let link = Self.firstLink(in: message.body) {
-                    LinkPreview(url: link)
-                }
-                if let urlStr = message.imageUrl, let url = URL(string: urlStr) {
-                    AsyncImage(url: url) { img in img.resizable().scaledToFill() } placeholder: {
-                        Color(.secondarySystemBackground)
-                    }
-                    .frame(maxWidth: 240, maxHeight: 240).clipShape(RoundedRectangle(cornerRadius: 14))
-                }
+                contentBody
                 if !message.reactions.isEmpty {
                     HStack(spacing: 6) {
                         ForEach(message.reactions) { r in
@@ -87,6 +74,33 @@ struct MessageRow: View {
             Button { onReact("👍") } label: { Label("👍", systemImage: "hand.thumbsup") }
             if canEdit { Button { onEdit() } label: { Label("Edit", systemImage: "pencil") } }
             if canDelete { Button(role: .destructive) { onDelete() } label: { Label("Delete", systemImage: "trash") } }
+        }
+    }
+
+    /// Dispatch on the message kind. Structured kinds render a dedicated card;
+    /// everything else (and unknown kinds) falls back to the text/link/image body.
+    @ViewBuilder private var contentBody: some View {
+        switch message.messageKind {
+        case "spoiler": SpoilerCard(message: message)
+        case "stock": StockCard(message: message)
+        default: defaultContent
+        }
+    }
+
+    @ViewBuilder private var defaultContent: some View {
+        // The raw URL text is stripped from the body — only the rich embed
+        // represents the link. Any surrounding text still shows.
+        if !cleanedBody.isEmpty {
+            Text(Self.styledMentions(cleanedBody)).font(.body)
+        }
+        if let link = Self.firstLink(in: message.body) {
+            LinkPreview(url: link)
+        }
+        if let urlStr = message.imageUrl, let url = URL(string: urlStr) {
+            AsyncImage(url: url) { img in img.resizable().scaledToFill() } placeholder: {
+                Color(.secondarySystemBackground)
+            }
+            .frame(maxWidth: 240, maxHeight: 240).clipShape(RoundedRectangle(cornerRadius: 14))
         }
     }
 
