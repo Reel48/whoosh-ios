@@ -236,6 +236,8 @@ struct ChatMessageRecord: Sendable {
     let createdAt: String
     let editedAt: String?
     let deletedAt: String?
+    let kind: String?
+    let data: JSONValue?
 
     init?(_ r: [String: Any]) {
         guard let id = r["id"] as? Int,
@@ -251,5 +253,8 @@ struct ChatMessageRecord: Sendable {
         self.createdAt = (r["created_at"] as? String) ?? ""
         self.editedAt = r["edited_at"] as? String
         self.deletedAt = r["deleted_at"] as? String
+        self.kind = r["kind"] as? String
+        // `data` arrives as a parsed JSON object/array (or NSNull) over the WAL.
+        if let raw = r["data"], !(raw is NSNull) { self.data = JSONValue(any: raw) } else { self.data = nil }
     }
 }

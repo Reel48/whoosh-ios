@@ -370,7 +370,8 @@ final class ChannelModel: ObservableObject {
             id: r.id, channelId: r.channelId,
             author: author ?? ChatAuthor(id: r.userId, username: "unknown", avatarUrl: nil, level: 0, roleColor: "#9aa0a6"),
             body: r.body, imageUrl: r.imageUrl, replyToId: r.replyToId, starCount: r.starCount,
-            reactions: [], mine: false, createdAt: r.createdAt, editedAt: r.editedAt)
+            reactions: [], mine: false, createdAt: r.createdAt, editedAt: r.editedAt,
+            kind: r.kind, data: r.data)
         if !messages.contains(where: { $0.id == msg.id }) {
             messages.append(msg)
             try? await api?.markChatRead(channelId: channelId, messageId: msg.id) // viewing → caught up

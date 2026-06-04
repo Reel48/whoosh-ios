@@ -90,6 +90,45 @@ struct ChatReactionSummary: Decodable, Sendable, Identifiable {
     var id: String { emoji }
 }
 
+/// A decoded JSON value for `chat_message.data` (shape varies by message `kind`).
+/// Decodable from the API DTO and constructible from the raw Realtime payload
+/// (`[String: Any]`), so structured cards render identically on both paths.
+enum JSONValue: Decodable, Sendable, Equatable {
+    case string(String), number(Double), bool(Bool), object([String: JSONValue]), array([JSONValue]), null
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if c.decodeNil() { self = .null }
+        else if let b = try? c.decode(Bool.self) { self = .bool(b) }
+        else if let n = try? c.decode(Double.self) { self = .number(n) }
+        else if let s = try? c.decode(String.self) { self = .string(s) }
+        else if let a = try? c.decode([JSONValue].self) { self = .array(a) }
+        else if let o = try? c.decode([String: JSONValue].self) { self = .object(o) }
+        else { self = .null }
+    }
+
+    /// Build from a Foundation JSON object (the Realtime `[String: Any]` path).
+    init(any: Any) {
+        switch any {
+        case let s as String: self = .string(s)
+        case let n as NSNumber:
+            // NSNumber bridges booleans and numbers; disambiguate by CFType.
+            if CFGetTypeID(n) == CFBooleanGetTypeID() { self = .bool(n.boolValue) }
+            else { self = .number(n.doubleValue) }
+        case let d as [String: Any]: self = .object(d.mapValues(JSONValue.init(any:)))
+        case let a as [Any]: self = .array(a.map(JSONValue.init(any:)))
+        default: self = .null
+        }
+    }
+
+    var stringValue: String? { if case .string(let s) = self { return s }; return nil }
+    var doubleValue: Double? { if case .number(let n) = self { return n }; return nil }
+    var intValue: Int? { doubleValue.map(Int.init) }
+    var boolValue: Bool? { if case .bool(let b) = self { return b }; return nil }
+    var arrayValue: [JSONValue]? { if case .array(let a) = self { return a }; return nil }
+    subscript(_ key: String) -> JSONValue? { if case .object(let o) = self { return o[key] }; return nil }
+}
+
 struct ChatMessage: Decodable, Sendable, Identifiable {
     let id: Int
     let channelId: Int
@@ -102,6 +141,13 @@ struct ChatMessage: Decodable, Sendable, Identifiable {
     let mine: Bool
     let createdAt: String
     var editedAt: String?
+    /// Discriminator: text | image | gif | spoiler | stock | bet | poll | file.
+    /// Optional so older cached responses still decode; use `messageKind`.
+    let kind: String?
+    /// Structured payload for non-text kinds; nil for plain messages.
+    let data: JSONValue?
+
+    var messageKind: String { kind ?? "text" }
 }
 
 struct ChatMe: Decodable, Sendable {
