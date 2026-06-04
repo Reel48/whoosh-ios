@@ -14,51 +14,76 @@ struct PoolDetailView: View {
     @State private var busy = false
     @State private var error: String?
     @State private var chat: ChatChannel?
-    @State private var openingChat = false
 
     var body: some View {
+        Group {
+            if let p = pool, p.joined {
+                joinedChat(p)               // chat is the default view for members
+            } else {
+                joinOrLoading               // not joined / loading / unavailable
+            }
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .task { if !loaded { await load() } }
+    }
+
+    /// Member view: a slim "Open in Sleeper" bar pinned at the top, chat below.
+    private func joinedChat(_ p: PoolDetail) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                TeamAvatar(url: p.logoUrl, name: p.displayName, size: 32)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(p.displayName).font(.subheadline.bold()).lineLimit(1)
+                    Text(summary(p)).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Spacer(minLength: 8)
+                if p.sleeperOpenURL != nil {
+                    Button { if let url = p.sleeperOpenURL { openURL(url) } } label: {
+                        Label("Open in Sleeper", systemImage: "arrow.up.forward.app.fill")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .background(Color.whooshLime, in: Capsule())
+                            .foregroundStyle(Color.whooshInk)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 10)
+            .background(.bar)
+            Divider()
+
+            if let chat {
+                ChannelView(channel: chat, embedded: true)
+            } else if let error {
+                ContentUnavailableView("Chat unavailable", systemImage: "bubble.left.and.bubble.right",
+                                       description: Text(error))
+            } else {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    private var joinOrLoading: some View {
         VStack(spacing: 20) {
             if let p = pool {
-                TeamAvatar(url: p.logoUrl, name: p.displayName, size: 88)
-                    .padding(.top, 24)
+                TeamAvatar(url: p.logoUrl, name: p.displayName, size: 88).padding(.top, 24)
                 VStack(spacing: 4) {
                     Text(p.displayName).font(.title2.bold()).multilineTextAlignment(.center)
                     Text(summary(p)).font(.subheadline).foregroundStyle(.secondary)
                 }
-
-                if p.joined {
-                    Label("You're in this pool", systemImage: "checkmark.seal.fill")
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(Color.whooshGreen)
-                    Button { if let url = p.sleeperOpenURL { openURL(url) } } label: {
-                        Label("Open in Sleeper", systemImage: "arrow.up.forward.app.fill")
-                            .frame(maxWidth: .infinity).padding()
-                            .background(Color.whooshLime).foregroundStyle(Color.whooshInk)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                Text("Join this pool to play.").font(.subheadline).foregroundStyle(.secondary)
+                Button { Task { await join(p) } } label: {
+                    Group {
+                        if busy { ProgressView() } else { Text(joinLabel(p)).bold() }
                     }
-                    .buttonStyle(.plain)
-                    Button { Task { await openChat() } } label: {
-                        Label(openingChat ? "Opening…" : "Pool chat", systemImage: "bubble.left.and.bubble.right.fill")
-                            .frame(maxWidth: .infinity).padding()
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-                    .buttonStyle(.plain).disabled(openingChat)
-                } else {
-                    Text("Join this pool to play.").font(.subheadline).foregroundStyle(.secondary)
-                    Button { Task { await join(p) } } label: {
-                        Group {
-                            if busy { ProgressView() }
-                            else { Text(joinLabel(p)).bold() }
-                        }
-                        .frame(maxWidth: .infinity).padding()
-                        .background(Color.whooshLime).foregroundStyle(Color.whooshInk)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-                    .buttonStyle(.plain).disabled(busy)
-                    Text("Opens secure checkout in your browser.")
-                        .font(.caption2).foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity).padding()
+                    .background(Color.whooshLime).foregroundStyle(Color.whooshInk)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-
+                .buttonStyle(.plain).disabled(busy)
+                Text("Opens secure checkout in your browser.")
+                    .font(.caption2).foregroundStyle(.tertiary)
                 if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
             } else if loaded {
                 ContentUnavailableView("Pool unavailable", systemImage: "person.3")
@@ -68,14 +93,9 @@ struct PoolDetailView: View {
             Spacer()
         }
         .padding(.horizontal, 24)
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(item: $chat) { ChannelView(channel: $0) }
-        .task { if !loaded { await load() } }
     }
 
     private func openChat() async {
-        openingChat = true; defer { openingChat = false }
         do { chat = try await model.api.openPoolChat(poolId: poolId) }
         catch let e as APIError {
             self.error = e.code == "forbidden" ? "Chat is for members of this pool." : e.message
@@ -98,6 +118,7 @@ struct PoolDetailView: View {
     private func load() async {
         pool = try? await model.api.fantasyPool(poolId)
         loaded = true
+        if pool?.joined == true { await openChat() }  // chat is the default view
     }
 
     private func join(_ p: PoolDetail) async {

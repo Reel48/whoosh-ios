@@ -7,6 +7,9 @@ import Combine
 struct ChannelView: View {
     @EnvironmentObject private var model: AppModel
     let channel: ChatChannel
+    /// When embedded in another screen (e.g. a pool page), suppress the channel's
+    /// own nav-bar title so it doesn't fight the host screen's header.
+    var embedded: Bool = false
 
     @StateObject private var vm = ChannelModel()
     @State private var draft = ""
@@ -33,13 +36,15 @@ struct ChannelView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                VStack(spacing: 1) {
-                    Text(channel.name).font(.headline)
-                    if vm.onlineCount > 0 {
-                        Text("\(vm.onlineCount) online").font(.caption2).foregroundStyle(Color.whooshGreen)
-                    } else if let d = channel.description, !d.isEmpty {
-                        Text(d).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+            if !embedded {
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 1) {
+                        Text(channel.name).font(.headline)
+                        if vm.onlineCount > 0 {
+                            Text("\(vm.onlineCount) online").font(.caption2).foregroundStyle(Color.whooshGreen)
+                        } else if let d = channel.description, !d.isEmpty {
+                            Text(d).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                        }
                     }
                 }
             }
