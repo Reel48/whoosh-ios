@@ -192,6 +192,11 @@ struct ChatLeaderboardRow: Decodable, Sendable, Identifiable {
     var id: String { user.id }
 }
 
+/// A GIF result from the Giphy proxy for the picker grid.
+struct GifResult: Decodable, Sendable, Identifiable {
+    let id: String; let url: String; let previewUrl: String; let width: Int; let height: Int
+}
+
 struct ChatMember: Decodable, Sendable, Identifiable {
     let id: String; let username: String; let avatarUrl: String?
 }
