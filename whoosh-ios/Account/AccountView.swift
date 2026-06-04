@@ -64,8 +64,8 @@ struct AccountView: View {
                             ProgressView().frame(width: 72, height: 72)
                         }
                         Image(systemName: "camera.fill")
-                            .font(.caption2).foregroundStyle(Color.whooshInk)
-                            .padding(6).background(Color.whooshLime, in: Circle())
+                            .font(.caption2).foregroundStyle(.white)
+                            .padding(6).background(Color.brandBlue, in: Circle())
                             .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 2))
                     }
                 }

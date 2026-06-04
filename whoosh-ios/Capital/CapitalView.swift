@@ -176,8 +176,8 @@ struct CapitalView: View {
                 else { Image(systemName: "chevron.right") }
             }
             .padding()
-            .foregroundStyle(Color.whooshInk)
-            .background(Color.whooshLime)
+            .foregroundStyle(Color.white)
+            .background(Color.brandBlue)
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .scaleEffect(bonusPulse ? 1.02 : 1.0)
             .padding(.horizontal)

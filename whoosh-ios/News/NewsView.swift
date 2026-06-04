@@ -71,8 +71,8 @@ struct NewsView: View {
                         Button { if sport != s.key { sport = s.key; Task { await loadDeck() } } } label: {
                             Text(s.label).font(.subheadline.weight(.semibold))
                                 .padding(.horizontal, 14).padding(.vertical, 8)
-                                .background(sport == s.key ? Color.whooshLime : Color(.secondarySystemBackground))
-                                .foregroundStyle(sport == s.key ? Color.whooshInk : .primary)
+                                .background(sport == s.key ? Color.brandBlue : Color(.secondarySystemBackground))
+                                .foregroundStyle(sport == s.key ? Color.white : .primary)
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)

@@ -63,7 +63,7 @@ struct AccountCreationView: View {
                     if busy { ProgressView().tint(Color.whooshInk) }
                     else { Text(isSignUp ? "Create account" : "Sign in") }
                 }
-                .buttonStyle(.lime)
+                .buttonStyle(.primaryFill)
                 .opacity(canSubmit ? 1 : 0.5)
                 .disabled(!canSubmit)
             }

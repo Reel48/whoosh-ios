@@ -23,7 +23,7 @@ struct EmptyStateCard: View {
             }
             if let actionTitle, let action {
                 Button(actionTitle, action: action)
-                    .buttonStyle(.lime)
+                    .buttonStyle(.primaryFill)
                     .fixedSize()
                     .padding(.top, Spacing.xs)
             }

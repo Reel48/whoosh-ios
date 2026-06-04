@@ -110,7 +110,7 @@ private struct LinkSleeperCard: View {
                 Button { Task { await link() } } label: {
                     if busy { ProgressView() } else { Text("Link").bold() }
                 }
-                .buttonStyle(.borderedProminent).tint(Color.whooshLime).foregroundStyle(Color.whooshInk)
+                .buttonStyle(.borderedProminent).tint(Color.brandBlue).foregroundStyle(Color.white)
                 .disabled(username.trimmingCharacters(in: .whitespaces).isEmpty || busy)
             }
             if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
