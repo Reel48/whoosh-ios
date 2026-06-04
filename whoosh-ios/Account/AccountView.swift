@@ -25,6 +25,9 @@ struct AccountView: View {
     // Username editing
     @State private var editingUsername = false
 
+    // Appearance (System / Light / Dark) — persisted + applied app-wide at the root.
+    @AppStorage("appearance") private var appearance: AppearancePref = .system
+
     var body: some View {
         List {
             header
@@ -32,6 +35,7 @@ struct AccountView: View {
             profileSection
             referralsSection
             detailsSection
+            appearanceSection
 
             Section {
                 Button("Sign out", role: .destructive) { Task { await model.signOut() } }
@@ -223,6 +227,17 @@ struct AccountView: View {
                 }
             }
             if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
+        }
+    }
+
+    private var appearanceSection: some View {
+        Section("Appearance") {
+            Picker(selection: $appearance) {
+                ForEach(AppearancePref.allCases) { Text($0.label).tag($0) }
+            } label: {
+                Label("Theme", systemImage: "circle.lefthalf.filled")
+            }
+            .pickerStyle(.segmented)
         }
     }
 
