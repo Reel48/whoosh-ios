@@ -222,7 +222,7 @@ struct AccountView: View {
                     Label("Chat Roles (Admin)", systemImage: "wrench.and.screwdriver.fill")
                 }
             }
-            if let error { Text(error).foregroundStyle(.red).font(.footnote) }
+            if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
         }
     }
 
@@ -299,10 +299,10 @@ private struct EditUsernameSheet: View {
                         Text("3–20 letters, numbers, or underscores.")
                     } else if let a = availability {
                         Text(a.available ? "✓ Available" : (a.reason ?? "Unavailable"))
-                            .foregroundStyle(a.available ? .green : .red)
+                            .foregroundStyle(a.available ? Color.good : Color.bad)
                     }
                 }
-                if let error { Text(error).foregroundStyle(.red).font(.footnote) }
+                if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
             }
             .navigationTitle("Change username")
             .navigationBarTitleDisplayMode(.inline)

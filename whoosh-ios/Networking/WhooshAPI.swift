@@ -280,6 +280,27 @@ actor WhooshAPI {
         return r.pools
     }
     func fantasyPool(_ id: String) async throws -> PoolDetail { try await get("/api/v1/fantasy/pools/\(id)") }
+
+    /// Open the league's member-gated group chat; returns it as a channel.
+    /// Throws APIError("forbidden") if the viewer isn't a member of the league.
+    func openLeagueChat(leagueId: String) async throws -> ChatChannel {
+        struct R: Decodable { let channel: ChatChannel }
+        let r: R = try await postNoBody("/api/v1/fantasy/leagues/\(leagueId)/chat")
+        return r.channel
+    }
+    /// Open the pool's member-gated group chat; returns it as a channel.
+    func openPoolChat(poolId: String) async throws -> ChatChannel {
+        struct R: Decodable { let channel: ChatChannel }
+        let r: R = try await postNoBody("/api/v1/fantasy/pools/\(poolId)/chat")
+        return r.channel
+    }
+    /// Open the cross-league Power Rankings chat (everyone on the leaderboard).
+    func openRankingsChat() async throws -> ChatChannel {
+        struct R: Decodable { let channel: ChatChannel }
+        let r: R = try await postNoBody("/api/v1/fantasy/rankings/chat")
+        return r.channel
+    }
+
     /// Hosted Stripe Checkout URL for a pool/league group's entry fee (web link-out).
     func fantasyCheckout(groupKey: String) async throws -> URL {
         let r: CheckoutURL = try await post("/api/v1/fantasy/checkout",

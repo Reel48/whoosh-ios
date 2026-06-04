@@ -88,11 +88,11 @@ private struct ScoreCard: View {
                     .foregroundStyle(.tertiary)
                 Spacer(minLength: 2)
                 if live {
-                    Circle().fill(Color.red).frame(width: 5, height: 5)
+                    Circle().fill(Color.brandOrange).frame(width: 5, height: 5)
                 }
                 Text(status)
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(live ? Color.red : .secondary)
+                    .foregroundStyle(live ? Color.brandOrange : .secondary)
                     .lineLimit(1)
             }
         }

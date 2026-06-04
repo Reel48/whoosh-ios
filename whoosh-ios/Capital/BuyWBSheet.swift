@@ -38,7 +38,7 @@ struct BuyWBSheet: View {
                 }
                 .padding(.horizontal)
 
-                if let error { Text(error).foregroundStyle(.red).font(.footnote) }
+                if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
 
                 Button(action: { Task { await checkout() } }) {
                     Group { if busy { ProgressView() } else { Text("Continue to checkout").bold() } }

@@ -27,7 +27,7 @@ struct BetsView: View {
 
             List {
                 if tab == .open { openEvents } else { myBets }
-                if let error { Text(error).foregroundStyle(.red).font(.footnote) }
+                if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
             }
         }
         .navigationTitle("Bets")
@@ -96,8 +96,8 @@ struct BetsView: View {
         }
     }
     private func statusColor(_ s: String) -> Color {
-        switch s { case "won": return .whooshGreen; case "lost": return .red
-        case "refunded": return .secondary; default: return .primary }
+        switch s { case "won": return .good; case "lost": return .bad
+        case "open": return .warning; case "refunded": return .secondary; default: return .primary }
     }
 
     private func load() async {

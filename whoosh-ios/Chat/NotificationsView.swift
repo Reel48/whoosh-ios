@@ -15,7 +15,7 @@ struct NotificationBell: View {
         Image(systemName: "bell").font(.title3)
             .overlay(alignment: .topTrailing) {
                 if store.unread > 0 {
-                    Circle().fill(.red).frame(width: 9, height: 9).offset(x: 5, y: -3)
+                    Circle().fill(Color.brandOrange).frame(width: 9, height: 9).offset(x: 5, y: -3)
                 }
             }
     }

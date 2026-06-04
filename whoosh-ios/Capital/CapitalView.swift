@@ -33,11 +33,11 @@ struct CapitalView: View {
                     allocationStrip
                     VStack(spacing: 10) {
                         navRow("Invest", "chart.line.uptrend.xyaxis") { InvestView() }
-                        navRow("Bets", "dice.fill") { BetsView() }
+                        navRow("Bet", "dice.fill") { BetsView() }
                     }
                     .padding(.horizontal)
                     positionsSection
-                    if let error { Text(error).foregroundStyle(.red).font(.footnote).padding(.horizontal) }
+                    if let error { Text(error).foregroundStyle(.bad).font(.footnote).padding(.horizontal) }
                 }
                 .padding(.top, 8)
                 .padding(.bottom, 20)
@@ -67,7 +67,7 @@ struct CapitalView: View {
             } label: {
                 actionLabel("Activity", "list.bullet")
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
         }
         .padding(.horizontal)
     }
@@ -79,7 +79,7 @@ struct CapitalView: View {
                 .background(Color(.secondarySystemBackground)).clipShape(RoundedRectangle(cornerRadius: 12)) }
             else { actionLabel(title, icon, badge: badge) }
         }
-        .buttonStyle(PressableStyle())
+        .buttonStyle(.pressable)
         .disabled(busy)
     }
 
@@ -93,7 +93,7 @@ struct CapitalView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(alignment: .topTrailing) {
             if badge {
-                Circle().fill(Color.red).frame(width: 9, height: 9).padding(6)
+                Circle().fill(Color.brandOrange).frame(width: 9, height: 9).padding(6)
             }
         }
     }
@@ -112,7 +112,7 @@ struct CapitalView: View {
             .padding().background(Color(.secondarySystemBackground))
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 
     private func claimBonus() async {
@@ -136,9 +136,8 @@ struct CapitalView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Total balance").font(.subheadline).foregroundStyle(.secondary)
             if let d = dashboard {
-                Text(Money.wb(d.allocation.totalEquityCents))
+                CountUpText(value: Double(d.allocation.totalEquityCents), format: { Money.wb(Int($0)) })
                     .font(.system(size: 40, weight: .bold, design: .rounded))
-                    .contentTransition(.numericText())
                 HStack(spacing: 10) {
                     if let day = d.dayChangeCents {
                         Label(Money.wb(day, signed: true),
@@ -150,7 +149,10 @@ struct CapitalView: View {
                 }
                 .font(.subheadline.weight(.medium))
             } else {
-                Text("$—").font(.system(size: 40, weight: .bold, design: .rounded)).redacted(reason: .placeholder)
+                VStack(alignment: .leading, spacing: 8) {
+                    Skeleton(width: 190, height: 40, cornerRadius: 10)
+                    Skeleton(width: 140, height: 16)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -180,7 +182,7 @@ struct CapitalView: View {
             .scaleEffect(bonusPulse ? 1.02 : 1.0)
             .padding(.horizontal)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .disabled(claimingBonus)
         .transition(.move(edge: .top).combined(with: .opacity))
         .onAppear {
@@ -220,7 +222,7 @@ struct CapitalView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Holdings").font(.headline).padding(.horizontal)
             if let positions = dashboard?.positions, !positions.isEmpty {
-                ForEach(positions) { p in
+                ForEach(Array(positions.enumerated()), id: \.element.id) { i, p in
                     HStack {
                         VStack(alignment: .leading) {
                             Text(p.symbol).font(.body.bold())
@@ -235,8 +237,9 @@ struct CapitalView: View {
                         }
                     }
                     .padding(.horizontal).padding(.vertical, 8)
+                    .reveal(index: i)
                 }
-            } else {
+            } else if dashboard != nil {
                 Text("No investments yet").font(.footnote).foregroundStyle(.secondary).padding(.horizontal)
             }
         }
@@ -257,15 +260,6 @@ struct CapitalView: View {
         }
         if dashboard == nil { error = "Couldn't load your wallet." }
         if haptic { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
-    }
-}
-
-/// Subtle press-scale feedback for tappable cards.
-private struct PressableStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 

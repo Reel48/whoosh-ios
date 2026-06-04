@@ -53,13 +53,24 @@ struct MessageRow: View {
                 if !message.reactions.isEmpty {
                     HStack(spacing: 6) {
                         ForEach(message.reactions) { r in
-                            Button { onReact(r.emoji) } label: {
-                                Text("\(r.emoji) \(r.count)")
-                                    .font(.caption2.weight(.medium))
-                                    .padding(.horizontal, 8).padding(.vertical, 4)
-                                    .background(r.mine ? Color.whooshLime.opacity(0.30) : Color(.secondarySystemBackground), in: Capsule())
-                                    .overlay(Capsule().stroke(r.mine ? Color.whooshGreen.opacity(0.5) : .clear, lineWidth: 1))
-                            }.buttonStyle(.plain)
+                            Button {
+                                Haptics.impact(.light)
+                                onReact(r.emoji)
+                            } label: {
+                                HStack(spacing: 3) {
+                                    Text(r.emoji)
+                                    Text("\(r.count)").contentTransition(.numericText(value: Double(r.count)))
+                                }
+                                .font(.caption2.weight(.medium))
+                                .padding(.horizontal, 8).padding(.vertical, 4)
+                                .background(r.mine ? Color.whooshLime.opacity(0.30) : Color(.secondarySystemBackground), in: Capsule())
+                                .overlay(Capsule().stroke(r.mine ? Color.whooshGreen.opacity(0.5) : .clear, lineWidth: 1))
+                                .scaleEffect(r.mine ? 1.04 : 1)
+                            }
+                            .buttonStyle(.plain)
+                            .animation(Anim.playful, value: r.mine)
+                            .animation(Anim.playful, value: r.count)
+                            .transition(.scale.combined(with: .opacity))
                         }
                     }
                     .padding(.top, 1)

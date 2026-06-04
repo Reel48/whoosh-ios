@@ -26,8 +26,14 @@ enum Money {
         return sign + String(format: "%.1f%%", pct)
     }
 
-    /// Brand color for a gain/loss value (lime-ish green up, red down, gray flat).
+    /// Semantic color for a gain/loss value: good (up), bad (down), neutral (flat).
     static func tint(_ value: Int) -> Color {
-        value > 0 ? .whooshGreen : (value < 0 ? .red : .secondary)
+        value > 0 ? .good : (value < 0 ? .bad : .secondary)
+    }
+
+    /// Direction color for a series over a period: good if it ended at/above where
+    /// it started, bad if it fell. For charts + balance hero (paired with +/-).
+    static func direction(_ start: Double, _ end: Double) -> Color {
+        end >= start ? .good : .bad
     }
 }

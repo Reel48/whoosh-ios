@@ -49,7 +49,7 @@ struct StarboardView: View {
                 ForEach(messages) { msg in
                     VStack(alignment: .leading, spacing: 6) {
                         Label("\(msg.starCount)", systemImage: "star.fill")
-                            .font(.caption.bold()).foregroundStyle(.yellow)
+                            .font(.caption.bold()).foregroundStyle(.brandOrange)
                         MessageRow(message: msg, onReact: { _ in })
                     }
                     .padding(12)

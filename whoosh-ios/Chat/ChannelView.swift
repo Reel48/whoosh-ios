@@ -7,6 +7,9 @@ import Combine
 struct ChannelView: View {
     @EnvironmentObject private var model: AppModel
     let channel: ChatChannel
+    /// When embedded in another screen (e.g. a pool page), suppress the channel's
+    /// own nav-bar title so it doesn't fight the host screen's header.
+    var embedded: Bool = false
 
     @StateObject private var vm = ChannelModel()
     @State private var draft = ""
@@ -33,13 +36,15 @@ struct ChannelView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                VStack(spacing: 1) {
-                    Text(channel.name).font(.headline)
-                    if vm.onlineCount > 0 {
-                        Text("\(vm.onlineCount) online").font(.caption2).foregroundStyle(Color.whooshGreen)
-                    } else if let d = channel.description, !d.isEmpty {
-                        Text(d).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+            if !embedded {
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 1) {
+                        Text(channel.name).font(.headline)
+                        if vm.onlineCount > 0 {
+                            Text("\(vm.onlineCount) online").font(.caption2).foregroundStyle(Color.whooshGreen)
+                        } else if let d = channel.description, !d.isEmpty {
+                            Text(d).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                        }
                     }
                 }
             }
@@ -95,7 +100,7 @@ struct ChannelView: View {
 
     private var typingIndicator: some View {
         HStack(spacing: 6) {
-            ProgressView().controlSize(.mini)
+            TypingDots()
             Text(typingText).font(.caption).foregroundStyle(.secondary)
             Spacer()
         }
@@ -144,7 +149,7 @@ struct ChannelView: View {
             PhotosPicker(selection: $photoItem, matching: .images) {
                 Image(systemName: "photo").font(.title3).foregroundStyle(.secondary)
             }
-            TextField(editing == nil ? "Message #\(channel.slug)" : "Edit message…", text: $draft, axis: .vertical)
+            TextField(composerPlaceholder, text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 18))
@@ -171,14 +176,29 @@ struct ChannelView: View {
         (!draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || pendingImage != nil) && !sending
     }
 
+    /// Composer placeholder. Public channels keep the Discord-style `#slug`;
+    /// DMs and league/pool chats (whose slugs are raw ids) just say "Message…".
+    private var composerPlaceholder: String {
+        if editing != nil { return "Edit message…" }
+        switch channel.kind {
+        case "dm", "group": return "Message…"
+        default: return "Message #\(channel.slug)"
+        }
+    }
+
     @ViewBuilder
     private var levelToastView: some View {
         if let lvl = levelToast {
-            Label("Level up! You're level \(lvl)", systemImage: "sparkles")
-                .font(.subheadline.bold()).foregroundStyle(Color.whooshInk)
-                .padding(.horizontal, 16).padding(.vertical, 10)
-                .background(Color.whooshLime, in: Capsule())
-                .padding(.top, 8).transition(.move(edge: .top).combined(with: .opacity))
+            HStack(spacing: 8) {
+                SuccessCheck(size: 20, color: .whooshInk)
+                Text("Level up! You're level \(lvl)").font(.subheadline.bold())
+            }
+            .foregroundStyle(Color.whooshInk)
+            .padding(.horizontal, 16).padding(.vertical, 10)
+            .background(Color.whooshLime, in: Capsule())
+            .shadow(color: Color.whooshLime.opacity(0.5), radius: 12, y: 4)
+            .padding(.top, 8)
+            .transition(.scale(scale: 0.8).combined(with: .opacity))
         }
     }
 
@@ -186,6 +206,7 @@ struct ChannelView: View {
 
     private func submit() async {
         sending = true; defer { sending = false }
+        Haptics.impact(.light)
         if let editing {
             await vm.edit(editing, body: draft)
             self.editing = nil; draft = ""; return
@@ -197,9 +218,10 @@ struct ChannelView: View {
         let leveledTo = await vm.send(body: draft, imageUrl: imageUrl)
         draft = ""; pendingImage = nil; photoItem = nil; mentionResults = []
         if let lvl = leveledTo {
-            withAnimation { levelToast = lvl }
-            try? await Task.sleep(for: .seconds(2))
-            withAnimation { levelToast = nil }
+            Haptics.success()
+            withAnimation(Anim.playful) { levelToast = lvl }
+            try? await Task.sleep(for: .seconds(2.2))
+            withAnimation(.easeOut(duration: 0.25)) { levelToast = nil }
         }
     }
 
@@ -220,6 +242,25 @@ struct ChannelView: View {
             draft.replaceSubrange(at.lowerBound..., with: "@\(username) ")
         }
         mentionResults = []
+    }
+}
+
+/// Three dots that pulse in sequence — the classic "typing…" affordance.
+struct TypingDots: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var t = false
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(0..<3, id: \.self) { i in
+                Circle()
+                    .fill(Color.secondary)
+                    .frame(width: 5, height: 5)
+                    .opacity(t ? 1 : 0.3)
+                    .animation(reduceMotion ? nil :
+                        .easeInOut(duration: 0.6).repeatForever().delay(Double(i) * 0.18), value: t)
+            }
+        }
+        .onAppear { t = true }
     }
 }
 
@@ -353,7 +394,7 @@ final class ChannelModel: ObservableObject {
         guard let count = try? await api.reactChat(messageId: message.id, emoji: emoji, on: on) else { return }
         var reactions = messages[idx].reactions.filter { $0.emoji != emoji }
         if count > 0 { reactions.append(ChatReactionSummary(emoji: emoji, count: count, mine: on)) }
-        messages[idx].reactions = reactions
+        withAnimation(Anim.playful) { messages[idx].reactions = reactions }
         if emoji == "⭐" { messages[idx].starCount = count }
     }
 

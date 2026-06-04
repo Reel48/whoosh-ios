@@ -12,6 +12,7 @@ struct AccountCreationView: View {
     @State private var busy = false
     @State private var error: String?
     @State private var note: String?
+    @State private var errorShake = 0
 
     private var canSubmit: Bool {
         email.contains("@") && password.count >= 8 && !busy
@@ -20,10 +21,16 @@ struct AccountCreationView: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 12) {
-                Image("WhooshBolt")
-                    .renderingMode(.template).resizable().scaledToFit()
-                    .frame(width: 56, height: 56)
-                    .foregroundStyle(Color.whooshInk)
+                HStack(spacing: 12) {
+                    Image("WhooshBolt")
+                        .renderingMode(.template).resizable().scaledToFit()
+                        .frame(width: 40, height: 40)
+                    Image("WhooshWordmark")
+                        .renderingMode(.template).resizable().scaledToFit()
+                        .frame(height: 28)
+                }
+                .foregroundStyle(Color.whooshInk)
+                .accessibilityLabel("Whoosh")
                 Text(isSignUp ? "Create your account" : "Welcome back")
                     .font(.title.bold())
                 Text(isSignUp ? "Join Whoosh" : "Sign in to Whoosh")
@@ -47,23 +54,21 @@ struct AccountCreationView: View {
                     .padding().background(Color(.secondarySystemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                if let error { Text(error).foregroundStyle(.red).font(.footnote) }
+                if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
                 if let note { Text(note).foregroundStyle(.secondary).font(.footnote) }
 
-                Button(action: { Task { await submit() } }) {
-                    Group {
-                        if busy { ProgressView() }
-                        else { Text(isSignUp ? "Create account" : "Sign in").bold() }
-                    }
-                    .frame(maxWidth: .infinity).padding()
-                    .background(Color.whooshLime)
-                    .foregroundStyle(Color.whooshInk)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .opacity(canSubmit ? 1 : 0.5)
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if busy { ProgressView().tint(Color.whooshInk) }
+                    else { Text(isSignUp ? "Create account" : "Sign in") }
                 }
+                .buttonStyle(.lime)
+                .opacity(canSubmit ? 1 : 0.5)
                 .disabled(!canSubmit)
             }
             .padding(.horizontal, 24)
+            .shake(trigger: errorShake)
 
             Spacer()
 
@@ -93,6 +98,8 @@ struct AccountCreationView: View {
             await model.didAuthenticate()
         } catch {
             self.error = error.localizedDescription
+            errorShake += 1
+            Haptics.warning()
         }
     }
 }

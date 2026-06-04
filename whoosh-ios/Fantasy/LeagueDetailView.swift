@@ -13,6 +13,9 @@ struct LeagueDetailView: View {
     @State private var matchups: [Matchup] = []
     @State private var locked = false
     @State private var loaded = false
+    @State private var chat: ChatChannel?
+    @State private var openingChat = false
+    @State private var chatError: String?
 
     var body: some View {
         Group {
@@ -36,7 +39,30 @@ struct LeagueDetailView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !locked {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { Task { await openChat() } } label: {
+                        if openingChat { ProgressView() }
+                        else { Image(systemName: "bubble.left.and.bubble.right.fill") }
+                    }
+                    .disabled(openingChat)
+                }
+            }
+        }
+        .navigationDestination(item: $chat) { ChannelView(channel: $0) }
+        .alert("League chat", isPresented: Binding(get: { chatError != nil }, set: { if !$0 { chatError = nil } })) {
+            Button("OK") { chatError = nil }
+        } message: { Text(chatError ?? "") }
         .task { if !loaded { await load(); loaded = true } }
+    }
+
+    private func openChat() async {
+        openingChat = true; defer { openingChat = false }
+        do { chat = try await model.api.openLeagueChat(leagueId: leagueId) }
+        catch let e as APIError {
+            chatError = e.code == "forbidden" ? "Chat is for members of this league." : e.message
+        } catch { chatError = "Couldn't open chat." }
     }
 
     @ViewBuilder private var standings: some View {
