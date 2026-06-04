@@ -102,10 +102,15 @@ struct MessageRow: View {
             LinkPreview(url: link)
         }
         if let urlStr = message.imageUrl, let url = URL(string: urlStr) {
-            AsyncImage(url: url) { img in img.resizable().scaledToFill() } placeholder: {
-                Color(.secondarySystemBackground)
+            if url.pathExtension.lowercased() == "gif" || message.messageKind == "gif" {
+                AnimatedGIFView(url: url)
+                    .frame(maxWidth: 240, maxHeight: 240).clipShape(RoundedRectangle(cornerRadius: 14))
+            } else {
+                AsyncImage(url: url) { img in img.resizable().scaledToFill() } placeholder: {
+                    Color(.secondarySystemBackground)
+                }
+                .frame(maxWidth: 240, maxHeight: 240).clipShape(RoundedRectangle(cornerRadius: 14))
             }
-            .frame(maxWidth: 240, maxHeight: 240).clipShape(RoundedRectangle(cornerRadius: 14))
         }
     }
 
