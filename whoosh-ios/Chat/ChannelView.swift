@@ -553,7 +553,7 @@ final class ChannelModel: ObservableObject {
             id: r.id, channelId: r.channelId,
             author: author ?? ChatAuthor(id: r.userId, username: "unknown", avatarUrl: nil, level: 0, roleColor: "#9aa0a6"),
             body: r.body, imageUrl: r.imageUrl, replyToId: r.replyToId, starCount: r.starCount,
-            reactions: [], mine: false, createdAt: r.createdAt, editedAt: r.editedAt,
+            boostCount: nil, reactions: [], mine: false, createdAt: r.createdAt, editedAt: r.editedAt,
             kind: r.kind, data: r.data, myPollVotes: nil)
         if !messages.contains(where: { $0.id == msg.id }) {
             messages.append(msg)

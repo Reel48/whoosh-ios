@@ -186,6 +186,24 @@ actor WhooshAPI {
         struct R: Decodable { let messages: [ChatMessage] }
         let r: R = try await get("/api/v1/chat/starboard"); return r.messages
     }
+    /// Starboard-eligible messages the viewer hasn't swiped yet (Boost/Meh deck).
+    func starboardDeck() async throws -> [ChatMessage] {
+        struct R: Decodable { let messages: [ChatMessage] }
+        let r: R = try await get("/api/v1/chat/starboard/deck"); return r.messages
+    }
+    /// All-time top messages by boosts.
+    func starboardLeaderboard() async throws -> [ChatMessage] {
+        struct R: Decodable { let messages: [ChatMessage] }
+        let r: R = try await get("/api/v1/chat/starboard/leaderboard"); return r.messages
+    }
+    /// Boost/Meh a starboard message (direction "boost"|"meh", or nil to undo).
+    @discardableResult
+    func starboardBoost(messageId: Int, direction: String?) async throws -> Int {
+        struct B: Encodable { let messageId: Int; let direction: String? }
+        struct R: Decodable { let boostCount: Int }
+        let r: R = try await post("/api/v1/chat/starboard/boost", body: B(messageId: messageId, direction: direction))
+        return r.boostCount
+    }
     func chatUsers(ids: [String]) async throws -> [ChatAuthor] {
         struct R: Decodable { let users: [ChatAuthor] }
         let q = ids.joined(separator: ",").addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
