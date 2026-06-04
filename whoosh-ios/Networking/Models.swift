@@ -138,7 +138,16 @@ enum JSONValue: Codable, Sendable, Equatable {
     var intValue: Int? { doubleValue.map(Int.init) }
     var boolValue: Bool? { if case .bool(let b) = self { return b }; return nil }
     var arrayValue: [JSONValue]? { if case .array(let a) = self { return a }; return nil }
+    var objectValue: [String: JSONValue]? { if case .object(let o) = self { return o }; return nil }
     subscript(_ key: String) -> JSONValue? { if case .object(let o) = self { return o[key] }; return nil }
+
+    /// Return a copy of this object with `key` set to `value` (treats non-objects
+    /// as an empty object). Used to merge updated poll counts into message data.
+    func setting(_ key: String, _ value: JSONValue) -> JSONValue {
+        var obj = objectValue ?? [:]
+        obj[key] = value
+        return .object(obj)
+    }
 }
 
 struct ChatMessage: Decodable, Sendable, Identifiable {
@@ -156,10 +165,14 @@ struct ChatMessage: Decodable, Sendable, Identifiable {
     /// Discriminator: text | image | gif | spoiler | stock | bet | poll | file.
     /// Optional so older cached responses still decode; use `messageKind`.
     let kind: String?
-    /// Structured payload for non-text kinds; nil for plain messages.
-    let data: JSONValue?
+    /// Structured payload for non-text kinds; nil for plain messages. Mutable so
+    /// live poll-count updates (via the message UPDATE broadcast) apply in place.
+    var data: JSONValue?
+    /// For poll messages: the option ids the viewer has voted for.
+    var myPollVotes: [String]?
 
     var messageKind: String { kind ?? "text" }
+    var pollVotes: [String] { myPollVotes ?? [] }
 }
 
 struct ChatMe: Decodable, Sendable {

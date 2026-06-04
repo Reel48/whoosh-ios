@@ -157,6 +157,13 @@ actor WhooshAPI {
         try await post("/api/v1/chat/channels/\(channelId)/messages",
                        body: SendChatMessageBody(body: body, imageUrl: imageUrl, replyTo: replyTo, kind: kind, data: data))
     }
+    /// Toggle a poll vote; returns updated per-option counts + the viewer's selections.
+    func votePoll(messageId: Int, optionId: String, on: Bool) async throws -> (counts: [String: Int], mine: [String]) {
+        struct B: Encodable { let optionId: String; let on: Bool }
+        struct R: Decodable { let counts: [String: Int]; let mine: [String] }
+        let r: R = try await post("/api/v1/chat/messages/\(messageId)/vote", body: B(optionId: optionId, on: on))
+        return (r.counts, r.mine)
+    }
     @discardableResult
     func reactChat(messageId: Int, emoji: String, on: Bool) async throws -> Int {
         struct R: Decodable { let count: Int }
