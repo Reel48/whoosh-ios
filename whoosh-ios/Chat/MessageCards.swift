@@ -27,14 +27,14 @@ struct FileCard: View {
     var body: some View {
         Button { if let url { openURL(url) } } label: {
             HStack(spacing: 12) {
-                Image(systemName: icon).font(.title3).foregroundStyle(Color.brandBlue)
+                Image(systemName: icon).font(.ck(.title3)).foregroundStyle(Color.brandBlue)
                     .frame(width: 32)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(filename).font(.subheadline.weight(.semibold)).foregroundStyle(.primary).lineLimit(1)
-                    if !sizeLabel.isEmpty { Text(sizeLabel).font(.caption2).foregroundStyle(.secondary) }
+                    Text(filename).font(.ck(.subheadline, .semibold)).foregroundStyle(.primary).lineLimit(1)
+                    if !sizeLabel.isEmpty { Text(sizeLabel).font(.ck(.caption2)).foregroundStyle(.secondary) }
                 }
                 Spacer(minLength: 8)
-                Image(systemName: "arrow.down.circle").font(.body).foregroundStyle(.secondary)
+                Image(systemName: "arrow.down.circle").font(.ck(.body)).foregroundStyle(.secondary)
             }
             .padding(12)
             .frame(maxWidth: 280, alignment: .leading)
@@ -59,12 +59,12 @@ struct SpoilerCard: View {
     var body: some View {
         Group {
             if revealed {
-                Text(text).font(.body)
+                Text(text).font(.ck(.body))
                     .transition(.opacity)
             } else {
                 HStack(spacing: 6) {
-                    Image(systemName: "eye.slash.fill").font(.caption)
-                    Text("Spoiler — tap to reveal").font(.subheadline.weight(.semibold))
+                    Image(systemName: "eye.slash.fill").font(.ck(.caption))
+                    Text("Spoiler — tap to reveal").font(.ck(.subheadline, .semibold))
                 }
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -95,20 +95,20 @@ struct StockCard: View {
         HStack(spacing: 12) {
             ZStack {
                 Circle().fill(Color.brandBlue.opacity(0.15)).frame(width: 38, height: 38)
-                Image(systemName: "chart.line.uptrend.xyaxis").font(.subheadline.bold())
+                Image(systemName: "chart.line.uptrend.xyaxis").font(.ck(.subheadline, .bold))
                     .foregroundStyle(Color.brandBlue)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(symbol).font(.subheadline.weight(.bold))
-                if let p = priceCents { Text(Money.wb(p)).font(.caption).foregroundStyle(.secondary) }
+                Text(symbol).font(.ck(.subheadline, .bold))
+                if let p = priceCents { Text(Money.wb(p)).font(.ck(.caption)).foregroundStyle(.secondary) }
             }
             Spacer(minLength: 8)
             if let c = changeCents, let prev = prevCloseCents, prev != 0 {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("\(c >= 0 ? "▲" : "▼") \(Money.wb(abs(c)))")
-                        .font(.caption.weight(.semibold))
+                        .font(.ck(.caption, .semibold))
                     Text(Money.percent(Double(c) / Double(prev)))
-                        .font(.caption2)
+                        .font(.ck(.caption2))
                 }
                 .foregroundStyle(Money.tint(c))
             }
@@ -130,15 +130,15 @@ struct StarboardCard: View {
             HStack(spacing: 10) {
                 ChatAvatar(url: message.author.avatarUrl, size: 40)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(message.author.username).font(.subheadline.weight(.semibold))
+                    Text(message.author.username).font(.ck(.subheadline, .semibold))
                         .foregroundStyle(Color(hex: message.author.roleColor))
                     Label("\(message.starCount)", systemImage: "star.fill")
-                        .font(.caption2.bold()).foregroundStyle(Color.brandOrange)
+                        .font(.ck(.caption2, .bold)).foregroundStyle(Color.brandOrange)
                 }
                 Spacer()
             }
             if !message.body.isEmpty {
-                Text(message.body).font(.title3).foregroundStyle(.primary)
+                Text(message.body).font(.ck(.title3)).foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             if let urlStr = message.imageUrl, let url = URL(string: urlStr) {
@@ -169,9 +169,9 @@ struct WelcomeCard: View {
         HStack(spacing: 12) {
             ChatAvatar(url: avatarUrl, size: 44)
             VStack(alignment: .leading, spacing: 2) {
-                Text("🎉 New member!").font(.caption2.weight(.bold)).foregroundStyle(Color.brandLime)
-                Text("Welcome @\(username)").font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
-                Text("Say hi 👋").font(.caption2).foregroundStyle(.secondary)
+                Text("🎉 New member!").font(.ck(.caption2, .bold)).foregroundStyle(Color.brandLime)
+                Text("Welcome @\(username)").font(.ck(.subheadline, .semibold)).foregroundStyle(.primary)
+                Text("Say hi 👋").font(.ck(.caption2)).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
         }
@@ -210,8 +210,8 @@ struct PollCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                Image(systemName: "chart.bar.fill").font(.caption).foregroundStyle(Color.brandBlue)
-                Text(question).font(.subheadline.weight(.bold))
+                Image(systemName: "chart.bar.fill").font(.ck(.caption)).foregroundStyle(Color.brandBlue)
+                Text(question).font(.ck(.subheadline, .bold))
             }
             ForEach(options) { opt in
                 let n = count(opt.id)
@@ -226,9 +226,9 @@ struct PollCard: View {
                         }
                         HStack {
                             if mine(opt.id) {
-                                Image(systemName: "checkmark.circle.fill").font(.caption).foregroundStyle(Color.brandBlue)
+                                Image(systemName: "checkmark.circle.fill").font(.ck(.caption)).foregroundStyle(Color.brandBlue)
                             }
-                            Text(opt.text).font(.subheadline).foregroundStyle(.primary)
+                            Text(opt.text).font(.ck(.subheadline)).foregroundStyle(.primary)
                             Spacer()
                             Text("\(n)").font(.caption.weight(.semibold).monospacedDigit()).foregroundStyle(.secondary)
                         }
@@ -241,7 +241,7 @@ struct PollCard: View {
                 .buttonStyle(.plain)
             }
             Text("\(total) vote\(total == 1 ? "" : "s")\(multi ? " · pick any" : "")")
-                .font(.caption2).foregroundStyle(.tertiary)
+                .font(.ck(.caption2)).foregroundStyle(.tertiary)
         }
         .padding(12)
         .frame(maxWidth: 300, alignment: .leading)
@@ -274,8 +274,8 @@ struct BetCard: View {
         } label: {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
-                    Image(systemName: "dice.fill").font(.caption).foregroundStyle(Color.brandOrange)
-                    Text(matchup).font(.subheadline.weight(.bold)).foregroundStyle(.primary).lineLimit(2)
+                    Image(systemName: "dice.fill").font(.ck(.caption)).foregroundStyle(Color.brandOrange)
+                    Text(matchup).font(.ck(.subheadline, .bold)).foregroundStyle(.primary).lineLimit(2)
                 }
                 if !outcomes.isEmpty {
                     HStack(spacing: 8) {
@@ -284,16 +284,16 @@ struct BetCard: View {
                                 Text(o.label).lineLimit(1)
                                 Text(String(format: "%.2f×", o.odds)).fontWeight(.semibold).foregroundStyle(Color.brandBlue)
                             }
-                            .font(.caption2)
+                            .font(.ck(.caption2))
                             .padding(.horizontal, 8).padding(.vertical, 5)
                             .background(Color(.tertiarySystemBackground), in: Capsule())
                         }
                     }
                 }
                 HStack(spacing: 4) {
-                    Text(BetMarketCatalog.sportTitle(sportKey)).font(.caption2).foregroundStyle(.secondary)
+                    Text(BetMarketCatalog.sportTitle(sportKey)).font(.ck(.caption2)).foregroundStyle(.secondary)
                     Spacer()
-                    Text("Open in Bets").font(.caption2.weight(.semibold)).foregroundStyle(Color.brandBlue)
+                    Text("Open in Bets").font(.ck(.caption2, .semibold)).foregroundStyle(Color.brandBlue)
                     Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold)).foregroundStyle(Color.brandBlue)
                 }
             }

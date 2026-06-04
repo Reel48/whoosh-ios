@@ -22,13 +22,13 @@ struct RankingsView: View {
                             .frame(width: 26)
                         TeamAvatar(url: row.avatarUrl, name: row.teamName, size: 34)
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(row.teamName).font(.body.weight(.medium)).lineLimit(1)
-                            Text("\(row.leagueName) · \(row.record)").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                            Text(row.teamName).font(.ck(.body, .medium)).lineLimit(1)
+                            Text("\(row.leagueName) · \(row.record)").font(.ck(.caption2)).foregroundStyle(.secondary).lineLimit(1)
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 1) {
-                            Text("\(row.powerScore, specifier: "%.1f")").font(.callout.weight(.bold))
-                            Text("power").font(.caption2).foregroundStyle(.tertiary)
+                            Text("\(row.powerScore, specifier: "%.1f")").font(.ck(.callout, .bold))
+                            Text("power").font(.ck(.caption2)).foregroundStyle(.tertiary)
                         }
                     }
                 }

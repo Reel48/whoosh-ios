@@ -36,31 +36,31 @@ struct ArticleCard: View {
                 HStack(spacing: 8) {
                     if let displayLabel {
                         Text(displayLabel.uppercased())
-                            .font(.caption2.bold())
+                            .font(.ck(.caption2, .bold))
                             .padding(.horizontal, 8).padding(.vertical, 3)
                             .background(Color.whooshLime).foregroundStyle(Color.whooshInk)
                             .clipShape(Capsule())
                     }
-                    Text("ESPN").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                    Text("ESPN").font(.ck(.caption2, .semibold)).foregroundStyle(.secondary)
                     Spacer()
                     if let date = relativeDate {
-                        Label(date, systemImage: "clock").font(.caption2).foregroundStyle(.tertiary)
+                        Label(date, systemImage: "clock").font(.ck(.caption2)).foregroundStyle(.tertiary)
                     }
                 }
 
-                Text(article.title).font(.title3.bold()).lineLimit(4)
+                Text(article.title).font(.ck(.title3, .bold)).lineLimit(4)
                 if !article.description.isEmpty {
-                    Text(article.description).font(.subheadline).foregroundStyle(.secondary).lineLimit(8)
+                    Text(article.description).font(.ck(.subheadline)).foregroundStyle(.secondary).lineLimit(8)
                 }
                 Spacer(minLength: 0)
                 HStack {
                     if let by = article.author, !by.isEmpty {
-                        Label(by, systemImage: "person.fill").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        Label(by, systemImage: "person.fill").font(.ck(.caption)).foregroundStyle(.secondary).lineLimit(1)
                     }
                     Spacer()
                     if let link = URL(string: article.link) {
                         Link(destination: link) {
-                            Label("Read", systemImage: "safari").font(.footnote.bold())
+                            Label("Read", systemImage: "safari").font(.ck(.footnote, .bold))
                         }
                     }
                 }

@@ -17,7 +17,7 @@ struct PressableButtonStyle: ButtonStyle {
 struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.headline)
+            .font(.ck(.headline))
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.md)
@@ -33,7 +33,7 @@ struct PrimaryButtonStyle: ButtonStyle {
 struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.headline)
+            .font(.ck(.headline))
             .foregroundStyle(.primary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.md)

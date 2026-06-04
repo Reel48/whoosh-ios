@@ -37,7 +37,7 @@ struct SymbolView: View {
                 statsSection
                 orderSection
                 if let message {
-                    Text(message).foregroundStyle(isError ? Color.bad : Color.good).font(.footnote)
+                    Text(message).foregroundStyle(isError ? Color.bad : Color.good).font(.ck(.footnote))
                         .padding(.horizontal)
                 }
             }
@@ -63,11 +63,11 @@ struct SymbolView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(detail?.snapshot.longName ?? detail?.profile?.name ?? symbol)
-                .font(.headline).foregroundStyle(.secondary).lineLimit(1)
+                .font(.ck(.headline)).foregroundStyle(.secondary).lineLimit(1)
             if let price = priceCents {
                 Text(Money.wb(price)).font(.system(size: 34, weight: .bold, design: .rounded))
                 if let day = dayChangeCents {
-                    Text(Money.wb(day, signed: true)).font(.subheadline.weight(.medium))
+                    Text(Money.wb(day, signed: true)).font(.ck(.subheadline, .medium))
                         .foregroundStyle(Money.tint(day))
                 }
             } else if loading {
@@ -96,7 +96,7 @@ struct SymbolView: View {
                 .frame(height: 200).padding(.horizontal)
             } else {
                 RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground))
-                    .frame(height: 200).overlay { if loading { ProgressView() } else { Text("No price history").foregroundStyle(.secondary).font(.footnote) } }
+                    .frame(height: 200).overlay { if loading { ProgressView() } else { Text("No price history").foregroundStyle(.secondary).font(.ck(.footnote)) } }
                     .padding(.horizontal)
             }
             Picker("Range", selection: $range) {
@@ -113,7 +113,7 @@ struct SymbolView: View {
         Group {
             if let s = detail?.snapshot {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Key stats").font(.headline)
+                    Text("Key stats").font(.ck(.headline))
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                         stat("Day high", s.regularMarketDayHighCents.map { Money.wb($0) })
                         stat("Day low", s.regularMarketDayLowCents.map { Money.wb($0) })
@@ -132,8 +132,8 @@ struct SymbolView: View {
 
     private func stat(_ label: String, _ value: String?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption).foregroundStyle(.secondary)
-            Text(value ?? "—").font(.callout.weight(.medium))
+            Text(label).font(.ck(.caption)).foregroundStyle(.secondary)
+            Text(value ?? "—").font(.ck(.callout, .medium))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10).background(Color(.secondarySystemBackground))
@@ -144,7 +144,7 @@ struct SymbolView: View {
 
     private var orderSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Trade").font(.headline)
+            Text("Trade").font(.ck(.headline))
             Picker("Side", selection: $side) { Text("Buy").tag("buy"); Text("Sell").tag("sell") }
                 .pickerStyle(.segmented)
             HStack {

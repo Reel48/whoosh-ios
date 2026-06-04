@@ -33,7 +33,7 @@ struct PlaceWagerView: View {
                         LabeledContent("Potential return", value: Money.wb(p))
                     }
                 }
-                if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
+                if let error { Text(error).foregroundStyle(.bad).font(.ck(.footnote)) }
             }
             .navigationTitle("Place wager")
             .navigationBarTitleDisplayMode(.inline)

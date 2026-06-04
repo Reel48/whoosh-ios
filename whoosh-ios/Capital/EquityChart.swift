@@ -51,8 +51,8 @@ struct EquityChart: View {
                     .foregroundStyle(.secondary.opacity(0.5))
                     .annotation(position: .top, overflowResolution: .init(x: .fit, y: .disabled)) {
                         VStack(spacing: 2) {
-                            Text(Money.wb(sel.balanceCents)).font(.caption.bold())
-                            Text(sel.date, format: .dateTime.month().day()).font(.caption2).foregroundStyle(.secondary)
+                            Text(Money.wb(sel.balanceCents)).font(.ck(.caption, .bold))
+                            Text(sel.date, format: .dateTime.month().day()).font(.ck(.caption2)).foregroundStyle(.secondary)
                         }
                         .padding(6)
                         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
@@ -82,8 +82,8 @@ struct EquityChart: View {
         ZStack {
             RoundedRectangle(cornerRadius: 16).fill(Color(.secondarySystemBackground))
             VStack(spacing: 6) {
-                Image(systemName: "chart.line.uptrend.xyaxis").font(.title2).foregroundStyle(.secondary)
-                Text("No balance history yet").font(.footnote).foregroundStyle(.secondary)
+                Image(systemName: "chart.line.uptrend.xyaxis").font(.ck(.title2)).foregroundStyle(.secondary)
+                Text("No balance history yet").font(.ck(.footnote)).foregroundStyle(.secondary)
             }
         }
         .frame(height: 200)

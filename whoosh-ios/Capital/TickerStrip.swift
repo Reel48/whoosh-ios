@@ -37,10 +37,10 @@ struct TickerStrip: View {
         HStack(spacing: spacing) {
             ForEach(quotes) { q in
                 HStack(spacing: 6) {
-                    Text(q.symbol).font(.caption.bold())
-                    Text(Money.wb(q.priceCents)).font(.caption).foregroundStyle(.secondary)
+                    Text(q.symbol).font(.ck(.caption, .bold))
+                    Text(Money.wb(q.priceCents)).font(.ck(.caption)).foregroundStyle(.secondary)
                     Text(Money.percent(q.changePct / 100))
-                        .font(.caption2.bold())
+                        .font(.ck(.caption2, .bold))
                         .foregroundStyle(q.changePct >= 0 ? Color.good : Color.bad)
                 }
                 .padding(.horizontal, 10).padding(.vertical, 6)

@@ -32,7 +32,7 @@ struct TransferSheet: View {
                 Section("Note (optional)") {
                     TextField("What's it for?", text: $memo)
                 }
-                if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
+                if let error { Text(error).foregroundStyle(.bad).font(.ck(.footnote)) }
             }
             .navigationTitle("Send WB")
             .navigationBarTitleDisplayMode(.inline)

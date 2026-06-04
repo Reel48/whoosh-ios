@@ -64,7 +64,7 @@ struct AccountView: View {
                             ProgressView().frame(width: 72, height: 72)
                         }
                         Image(systemName: "camera.fill")
-                            .font(.caption2).foregroundStyle(.white)
+                            .font(.ck(.caption2)).foregroundStyle(.white)
                             .padding(6).background(Color.brandBlue, in: Circle())
                             .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 2))
                     }
@@ -73,13 +73,13 @@ struct AccountView: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("@\(account?.username ?? model.currentUsername)")
-                        .font(.title3.bold())
+                        .font(.ck(.title3, .bold))
                     if let email = account?.auth?.email {
-                        Text(email).font(.footnote).foregroundStyle(.secondary)
+                        Text(email).font(.ck(.footnote)).foregroundStyle(.secondary)
                     }
                     if account?.isPremium == true {
                         Label("Premium", systemImage: "star.fill")
-                            .font(.caption.weight(.bold))
+                            .font(.ck(.caption, .bold))
                             .foregroundStyle(Color.whooshInk)
                             .padding(.horizontal, 8).padding(.vertical, 3)
                             .background(Color.whooshLime, in: Capsule())
@@ -105,7 +105,7 @@ struct AccountView: View {
         } else {
             ZStack {
                 Color(.secondarySystemBackground)
-                Image(systemName: "person.fill").font(.title).foregroundStyle(.secondary)
+                Image(systemName: "person.fill").font(.ck(.title)).foregroundStyle(.secondary)
             }
         }
     }
@@ -119,7 +119,7 @@ struct AccountView: View {
                     .foregroundStyle(account?.isPremium == true ? Color.whooshGreen : .secondary)
                 Spacer()
                 Text(account?.isPremium == true ? "Active" : "Free")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.ck(.subheadline, .semibold))
                     .foregroundStyle(.secondary)
             }
 
@@ -132,7 +132,7 @@ struct AccountView: View {
                     billingLabel("Upgrade to Premium", system: "sparkles", accent: true)
                 }.disabled(busyBilling)
                 Text("Perks for supporters. Opens secure checkout in your browser.")
-                    .font(.caption2).foregroundStyle(.tertiary)
+                    .font(.ck(.caption2)).foregroundStyle(.tertiary)
             }
         }
         .confirmationDialog("Choose a plan", isPresented: $showUpgrade, titleVisibility: .visible) {
@@ -149,7 +149,7 @@ struct AccountView: View {
                 .foregroundStyle(accent ? Color.whooshInk : Color.accentColor)
             Spacer()
             if busyBilling { ProgressView() }
-            else { Image(systemName: "arrow.up.forward").font(.caption).foregroundStyle(.tertiary) }
+            else { Image(systemName: "arrow.up.forward").font(.ck(.caption)).foregroundStyle(.tertiary) }
         }
     }
 
@@ -162,7 +162,7 @@ struct AccountView: View {
                     Label("Username", systemImage: "at")
                     Spacer()
                     Text("@\(account?.username ?? model.currentUsername)").foregroundStyle(.secondary)
-                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                    Image(systemName: "chevron.right").font(.ck(.caption)).foregroundStyle(.tertiary)
                 }
                 .foregroundStyle(.primary)
             }
@@ -222,7 +222,7 @@ struct AccountView: View {
                     Label("Chat Roles (Admin)", systemImage: "wrench.and.screwdriver.fill")
                 }
             }
-            if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
+            if let error { Text(error).foregroundStyle(.bad).font(.ck(.footnote)) }
         }
     }
 
@@ -302,7 +302,7 @@ private struct EditUsernameSheet: View {
                             .foregroundStyle(a.available ? Color.good : Color.bad)
                     }
                 }
-                if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
+                if let error { Text(error).foregroundStyle(.bad).font(.ck(.footnote)) }
             }
             .navigationTitle("Change username")
             .navigationBarTitleDisplayMode(.inline)

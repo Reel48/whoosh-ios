@@ -11,9 +11,9 @@ struct FantasyView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Fantasy").font(.largeTitle.bold())
+                    Text("Fantasy").font(.ck(.largeTitle, .bold))
                     if let s = overview?.state {
-                        Text("NFL · \(s.label)").font(.subheadline).foregroundStyle(.secondary)
+                        Text("NFL · \(s.label)").font(.ck(.subheadline)).foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -62,9 +62,9 @@ struct FantasyView: View {
         HStack(spacing: 12) {
             TeamAvatar(url: lg.avatarUrl, name: lg.displayName)
             VStack(alignment: .leading, spacing: 2) {
-                Text(lg.displayName).font(.body.weight(.semibold)).lineLimit(1)
+                Text(lg.displayName).font(.ck(.body, .semibold)).lineLimit(1)
                 Text("\(lg.totalRosters) teams" + (lg.standings.first.map { " · \($0.teamName) leads" } ?? ""))
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    .font(.ck(.caption)).foregroundStyle(.secondary).lineLimit(1)
             }
         }
     }
@@ -73,14 +73,14 @@ struct FantasyView: View {
         HStack(spacing: 12) {
             TeamAvatar(url: p.logoUrl, name: p.displayName)
             VStack(alignment: .leading, spacing: 2) {
-                Text(p.displayName).font(.body.weight(.semibold)).lineLimit(1)
+                Text(p.displayName).font(.ck(.body, .semibold)).lineLimit(1)
                 Text(p.kind == "survivor"
                      ? "\(p.aliveCount ?? p.totalEntries) alive · \(p.totalEntries) entries"
                      : "\(p.totalEntries) entries")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.ck(.caption)).foregroundStyle(.secondary)
             }
             Spacer()
-            Text(p.kind.capitalized).font(.caption2).foregroundStyle(.secondary)
+            Text(p.kind.capitalized).font(.ck(.caption2)).foregroundStyle(.secondary)
         }
     }
 
@@ -100,9 +100,9 @@ private struct LinkSleeperCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Link your Sleeper account", systemImage: "link").font(.headline)
+            Label("Link your Sleeper account", systemImage: "link").font(.ck(.headline))
             Text("Connect your Sleeper username to see your leagues, matchups, and ranking.")
-                .font(.footnote).foregroundStyle(.secondary)
+                .font(.ck(.footnote)).foregroundStyle(.secondary)
             HStack {
                 TextField("Sleeper username", text: $username)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -113,7 +113,7 @@ private struct LinkSleeperCard: View {
                 .buttonStyle(.borderedProminent).tint(Color.brandBlue).foregroundStyle(Color.white)
                 .disabled(username.trimmingCharacters(in: .whitespaces).isEmpty || busy)
             }
-            if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
+            if let error { Text(error).foregroundStyle(.bad).font(.ck(.footnote)) }
         }
         .padding(.vertical, 4)
     }

@@ -19,7 +19,7 @@ struct NewsView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 Text("Sports News")
-                    .font(.largeTitle.bold())
+                    .font(.ck(.largeTitle, .bold))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal).padding(.top, 8).padding(.bottom, 10)
 
@@ -69,7 +69,7 @@ struct NewsView: View {
                 HStack(spacing: 8) {
                     ForEach(NewsCatalog.sports) { s in
                         Button { if sport != s.key { sport = s.key; Task { await loadDeck() } } } label: {
-                            Text(s.label).font(.subheadline.weight(.semibold))
+                            Text(s.label).font(.ck(.subheadline, .semibold))
                                 .padding(.horizontal, 14).padding(.vertical, 8)
                                 .background(sport == s.key ? Color.brandBlue : Color(.secondarySystemBackground))
                                 .foregroundStyle(sport == s.key ? Color.white : .primary)
@@ -141,9 +141,9 @@ private struct FeedList: View {
                         .frame(width: 64, height: 64).clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(e.title).font(.subheadline.weight(.semibold)).lineLimit(3)
+                        Text(e.title).font(.ck(.subheadline, .semibold)).lineLimit(3)
                         Label("\(e.points)", systemImage: "hand.thumbsup.fill")
-                            .font(.caption2).foregroundStyle(Color.whooshGreen)
+                            .font(.ck(.caption2)).foregroundStyle(Color.whooshGreen)
                     }
                     Spacer(minLength: 0)
                     if let link = URL(string: e.link) {

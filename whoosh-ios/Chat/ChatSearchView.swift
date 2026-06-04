@@ -36,10 +36,10 @@ struct ChatSearchView: View {
             ChatAvatar(url: msg.author.avatarUrl, size: 32)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(msg.author.username).font(.subheadline.bold())
-                    if let channel { Text("#\(channel.name)").font(.caption2).foregroundStyle(.secondary) }
+                    Text(msg.author.username).font(.ck(.subheadline, .bold))
+                    if let channel { Text("#\(channel.name)").font(.ck(.caption2)).foregroundStyle(.secondary) }
                 }
-                Text(msg.body).font(.subheadline).lineLimit(2)
+                Text(msg.body).font(.ck(.subheadline)).lineLimit(2)
             }
         }
     }
