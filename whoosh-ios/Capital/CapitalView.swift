@@ -33,7 +33,7 @@ struct CapitalView: View {
                     allocationStrip
                     VStack(spacing: 10) {
                         navRow("Invest", "chart.line.uptrend.xyaxis") { InvestView() }
-                        navRow("Bets", "dice.fill") { BetsView() }
+                        navRow("Bet", "dice.fill") { BetsView() }
                     }
                     .padding(.horizontal)
                     positionsSection
