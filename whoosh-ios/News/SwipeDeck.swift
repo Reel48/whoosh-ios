@@ -70,7 +70,7 @@ struct SwipeDeck<Item: Identifiable, Card: View>: View {
     }
 
     private func stamp(_ text: String, _ color: Color, opacity: Double) -> some View {
-        Text(text).font(.ck(.title2, .bold)).foregroundStyle(color)
+        Text(text).font(.title2.weight(.bold)).foregroundStyle(color)
             .padding(.horizontal, 12).padding(.vertical, 6)
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(color, lineWidth: 3))
             .rotationEffect(.degrees(-12))
@@ -79,9 +79,9 @@ struct SwipeDeck<Item: Identifiable, Card: View>: View {
 
     private var emptyState: some View {
         VStack(spacing: 10) {
-            Image(systemName: "checkmark.circle").font(.ck(.largeTitle)).foregroundStyle(Color.whooshGreen)
-            Text(emptyTitle).font(.ck(.headline))
-            Text(emptySubtitle).font(.ck(.footnote)).foregroundStyle(.secondary)
+            Image(systemName: "checkmark.circle").font(.largeTitle).foregroundStyle(Color.whooshGreen)
+            Text(emptyTitle).font(.headline)
+            Text(emptySubtitle).font(.footnote).foregroundStyle(.secondary)
         }
     }
 
@@ -101,7 +101,7 @@ struct SwipeDeck<Item: Identifiable, Card: View>: View {
 
     private func roundButton(_ icon: String, _ color: Color, _ tap: @escaping () -> Void) -> some View {
         Button(action: tap) {
-            Image(systemName: icon).font(.ck(.title2)).foregroundStyle(color)
+            Image(systemName: icon).font(.title2).foregroundStyle(color)
                 .frame(width: 58, height: 58)
                 .background(Color(.secondarySystemBackground), in: Circle())
                 .overlay(Circle().stroke(color.opacity(0.3), lineWidth: 1))

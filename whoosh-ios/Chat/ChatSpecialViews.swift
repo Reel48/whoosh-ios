@@ -15,14 +15,14 @@ struct ChatLeaderboardView: View {
                         .frame(width: 38, alignment: .leading)
                     ChatAvatar(url: row.user.avatarUrl, size: 32)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(row.user.username).font(.ck(.subheadline, .semibold))
+                        Text(row.user.username).font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color(hex: row.user.roleColor))
-                        Text("\(row.messageCount) messages").font(.ck(.caption2)).foregroundStyle(.secondary)
+                        Text("\(row.messageCount) messages").font(.caption2).foregroundStyle(.secondary)
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 1) {
-                        Text("LVL \(row.level)").font(.ck(.caption, .bold))
-                        Text("\(row.xp) XP").font(.ck(.caption2)).foregroundStyle(.secondary)
+                        Text("LVL \(row.level)").font(.caption.weight(.bold))
+                        Text("\(row.xp) XP").font(.caption2).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -88,13 +88,13 @@ struct StarboardView: View {
                             .frame(width: 32, alignment: .leading)
                         ChatAvatar(url: msg.author.avatarUrl, size: 32)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(msg.author.username).font(.ck(.subheadline, .semibold))
+                            Text(msg.author.username).font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Color(hex: msg.author.roleColor))
-                            Text(msg.body).font(.ck(.caption)).foregroundStyle(.secondary).lineLimit(3)
+                            Text(msg.body).font(.caption).foregroundStyle(.secondary).lineLimit(3)
                         }
                         Spacer(minLength: 6)
                         Label("\(msg.boostCount ?? 0)", systemImage: "bolt.fill")
-                            .font(.ck(.caption, .bold)).foregroundStyle(Color.brandOrange)
+                            .font(.caption.weight(.bold)).foregroundStyle(Color.brandOrange)
                             .labelStyle(.titleAndIcon)
                     }
                     .padding(12)

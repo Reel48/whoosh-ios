@@ -20,7 +20,7 @@ struct OnboardingView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            Text("Create your profile").font(.ck(.title, .bold)).padding(.top, 48)
+            Text("Create your profile").font(.title.weight(.bold)).padding(.top, 48)
 
             PhotosPicker(selection: $photoItem, matching: .images) {
                 ZStack {
@@ -29,7 +29,7 @@ struct OnboardingView: View {
                         Image(uiImage: img).resizable().scaledToFill()
                             .frame(width: 110, height: 110).clipShape(Circle())
                     } else {
-                        Image(systemName: "camera.fill").font(.ck(.title)).foregroundStyle(.secondary)
+                        Image(systemName: "camera.fill").font(.title).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -45,16 +45,16 @@ struct OnboardingView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .onChange(of: handle) { _, _ in scheduleCheck() }
                 if checking {
-                    Text("Checking…").font(.ck(.footnote)).foregroundStyle(.secondary)
+                    Text("Checking…").font(.footnote).foregroundStyle(.secondary)
                 } else if let a = availability {
                     Text(a.available ? "✓ Available" : (a.reason ?? "Unavailable"))
-                        .font(.ck(.footnote)).foregroundStyle(a.available ? Color.good : Color.bad)
+                        .font(.footnote).foregroundStyle(a.available ? Color.good : Color.bad)
                 }
             }
             .padding(.horizontal, 24)
             .shake(trigger: errorShake)
 
-            if let error { Text(error).foregroundStyle(.bad).font(.ck(.footnote)) }
+            if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
 
             Button {
                 Task { await finish() }
@@ -67,7 +67,7 @@ struct OnboardingView: View {
             .padding(.horizontal, 24)
 
             Button("Sign out") { Task { await model.signOut() } }
-                .font(.ck(.footnote)).foregroundStyle(.secondary)
+                .font(.footnote).foregroundStyle(.secondary)
 
             Spacer()
         }

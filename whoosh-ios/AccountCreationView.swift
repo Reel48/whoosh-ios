@@ -32,7 +32,7 @@ struct AccountCreationView: View {
                 .foregroundStyle(Color.whooshInk)
                 .accessibilityLabel("Whoosh")
                 Text(isSignUp ? "Create your account" : "Welcome back")
-                    .font(.ck(.title, .bold))
+                    .font(.title.weight(.bold))
                 Text(isSignUp ? "Join Whoosh" : "Sign in to Whoosh")
                     .foregroundStyle(.secondary)
             }
@@ -54,8 +54,8 @@ struct AccountCreationView: View {
                     .padding().background(Color(.secondarySystemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                if let error { Text(error).foregroundStyle(.bad).font(.ck(.footnote)) }
-                if let note { Text(note).foregroundStyle(.secondary).font(.ck(.footnote)) }
+                if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
+                if let note { Text(note).foregroundStyle(.secondary).font(.footnote) }
 
                 Button {
                     Task { await submit() }
@@ -76,7 +76,7 @@ struct AccountCreationView: View {
                             : "New here?  Create an account") {
                 isSignUp.toggle(); error = nil; note = nil
             }
-            .font(.ck(.footnote))
+            .font(.footnote)
             .padding(.bottom, 24)
         }
     }

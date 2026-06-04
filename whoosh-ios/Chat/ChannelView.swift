@@ -67,11 +67,11 @@ struct ChannelView: View {
             if !embedded {
                 ToolbarItem(placement: .principal) {
                     VStack(spacing: 1) {
-                        Text(channel.name).font(.ck(.headline))
+                        Text(channel.name).font(.headline)
                         if vm.onlineCount > 0 {
-                            Text("\(vm.onlineCount) online").font(.ck(.caption2)).foregroundStyle(Color.whooshGreen)
+                            Text("\(vm.onlineCount) online").font(.caption2).foregroundStyle(Color.whooshGreen)
                         } else if let d = channel.description, !d.isEmpty {
-                            Text(d).font(.ck(.caption2)).foregroundStyle(.secondary).lineLimit(1)
+                            Text(d).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                         }
                     }
                 }
@@ -145,7 +145,7 @@ struct ChannelView: View {
     private var typingIndicator: some View {
         HStack(spacing: 6) {
             TypingDots()
-            Text(typingText).font(.ck(.caption)).foregroundStyle(.secondary)
+            Text(typingText).font(.caption).foregroundStyle(.secondary)
             Spacer()
         }
         .padding(.horizontal, 14).padding(.vertical, 4)
@@ -167,7 +167,7 @@ struct ChannelView: View {
                     Button {
                         applyMention(m.username)
                     } label: {
-                        Text("@\(m.username)").font(.ck(.caption, .semibold))
+                        Text("@\(m.username)").font(.caption.weight(.semibold))
                             .padding(.horizontal, 10).padding(.vertical, 6)
                             .background(Color(.secondarySystemBackground), in: Capsule())
                     }.buttonStyle(.plain)
@@ -191,8 +191,8 @@ struct ChannelView: View {
                 ForEach(slashSuggestions, id: \.name) { c in
                     Button { draft = c.name + " " } label: {
                         HStack(spacing: 6) {
-                            Text(c.name).font(.ck(.caption, .bold)).foregroundStyle(Color.brandBlue)
-                            Text(c.hint).font(.ck(.caption2)).foregroundStyle(.secondary)
+                            Text(c.name).font(.caption.weight(.bold)).foregroundStyle(Color.brandBlue)
+                            Text(c.hint).font(.caption2).foregroundStyle(.secondary)
                         }
                         .padding(.horizontal, 10).padding(.vertical, 6)
                         .background(Color(.secondarySystemBackground), in: Capsule())
@@ -207,7 +207,7 @@ struct ChannelView: View {
         HStack {
             Image(uiImage: img).resizable().scaledToFill()
                 .frame(width: 48, height: 48).clipShape(RoundedRectangle(cornerRadius: 8))
-            Text("Photo attached").font(.ck(.caption)).foregroundStyle(.secondary)
+            Text("Photo attached").font(.caption).foregroundStyle(.secondary)
             Spacer()
             Button { pendingImage = nil; photoItem = nil } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
         }
@@ -217,10 +217,10 @@ struct ChannelView: View {
     private var composer: some View {
         HStack(spacing: 10) {
             PhotosPicker(selection: $photoItem, matching: .images) {
-                Image(systemName: "photo").font(.ck(.title3)).foregroundStyle(.secondary)
+                Image(systemName: "photo").font(.title3).foregroundStyle(.secondary)
             }
             Button { showFileImporter = true } label: {
-                Image(systemName: "paperclip").font(.ck(.title3)).foregroundStyle(.secondary)
+                Image(systemName: "paperclip").font(.title3).foregroundStyle(.secondary)
             }
             TextField(composerPlaceholder, text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
@@ -234,7 +234,7 @@ struct ChannelView: View {
                 }
             Button { Task { await submit() } } label: {
                 if sending { ProgressView() }
-                else { Image(systemName: "arrow.up.circle.fill").font(.ck(.title)) .foregroundStyle(canSend ? Color.whooshGreen : .secondary) }
+                else { Image(systemName: "arrow.up.circle.fill").font(.title) .foregroundStyle(canSend ? Color.whooshGreen : .secondary) }
             }.disabled(!canSend)
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
@@ -242,7 +242,7 @@ struct ChannelView: View {
     }
 
     private func footerNote(_ text: String) -> some View {
-        Text(text).font(.ck(.caption)).foregroundStyle(.secondary)
+        Text(text).font(.caption).foregroundStyle(.secondary)
             .frame(maxWidth: .infinity).padding(.vertical, 10).background(.bar)
     }
 
@@ -265,7 +265,7 @@ struct ChannelView: View {
         if let lvl = levelToast {
             HStack(spacing: 8) {
                 SuccessCheck(size: 20, color: .whooshInk)
-                Text("Level up! You're level \(lvl)").font(.ck(.subheadline, .bold))
+                Text("Level up! You're level \(lvl)").font(.subheadline.weight(.bold))
             }
             .foregroundStyle(Color.whooshInk)
             .padding(.horizontal, 16).padding(.vertical, 10)
@@ -452,7 +452,7 @@ struct DayDivider: View {
     var body: some View {
         HStack(spacing: 8) {
             Rectangle().fill(Color(.separator)).frame(height: 0.5)
-            Text(label).font(.ck(.caption2, .semibold)).foregroundStyle(.secondary).fixedSize()
+            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(.secondary).fixedSize()
             Rectangle().fill(Color(.separator)).frame(height: 0.5)
         }
         .padding(.vertical, 10)

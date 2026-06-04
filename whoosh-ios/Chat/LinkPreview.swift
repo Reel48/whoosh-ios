@@ -80,8 +80,8 @@ private struct LinkCard: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(md.title ?? url.host ?? url.absoluteString)
-                    .font(.ck(.subheadline, .semibold)).lineLimit(2).multilineTextAlignment(.leading)
-                Text(url.host ?? url.absoluteString).font(.ck(.caption2)).foregroundStyle(.secondary).lineLimit(1)
+                    .font(.subheadline.weight(.semibold)).lineLimit(2).multilineTextAlignment(.leading)
+                Text(url.host ?? url.absoluteString).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12).padding(.vertical, 10)
@@ -123,8 +123,8 @@ private struct LinkChip: View {
                 .frame(width: 30, height: 30)
                 .background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
             VStack(alignment: .leading, spacing: 1) {
-                Text(url.host ?? url.absoluteString).font(.ck(.subheadline, .semibold)).lineLimit(1)
-                Text(url.absoluteString).font(.ck(.caption2)).foregroundStyle(.secondary).lineLimit(1)
+                Text(url.host ?? url.absoluteString).font(.subheadline.weight(.semibold)).lineLimit(1)
+                Text(url.absoluteString).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer(minLength: 0)
         }
