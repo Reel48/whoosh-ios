@@ -83,6 +83,7 @@ struct MessageRow: View {
         switch message.messageKind {
         case "spoiler": SpoilerCard(message: message)
         case "stock": StockCard(message: message)
+        case "bet": BetCard(message: message)
         default: defaultContent
         }
     }

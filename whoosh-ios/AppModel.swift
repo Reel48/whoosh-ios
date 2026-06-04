@@ -9,6 +9,18 @@ enum AppState: Equatable { case loading, unauthenticated, onboarding, home }
 final class AppModel: ObservableObject {
     @Published private(set) var state: AppState = .loading
     @Published var currentUsername: String = ""
+    /// Selected home tab (0 Chat · 1 Capital · 2 Fantasy · 3 News · 4 Account).
+    /// Lifted here so a chat card can jump the user to another tab.
+    @Published var selectedTab = 0
+    /// When set, Capital deep-links into the Bet page focused on this game
+    /// (a bet card in chat was tapped). Cleared once consumed.
+    @Published var pendingBetGameKey: String?
+
+    /// Jump to the Bet page for a specific game (from a tapped chat bet card).
+    func openBet(gameKey: String) {
+        pendingBetGameKey = gameKey
+        selectedTab = 1
+    }
 
     let auth = SupabaseAuth()
     lazy var api = WhooshAPI(token: { [auth] in await auth.currentAccessToken() })

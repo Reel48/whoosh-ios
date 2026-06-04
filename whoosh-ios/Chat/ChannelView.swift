@@ -26,7 +26,10 @@ struct ChannelView: View {
     private static let slashCommands: [(name: String, hint: String)] = [
         ("/spoiler", "hide text until tapped"),
         ("/stocks", "share a stock quote — /stocks AAPL"),
+        ("/bets", "share open bets for a game"),
     ]
+    @State private var showBetPicker = false
+    @State private var betPickerPrefilter = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -60,6 +63,12 @@ struct ChannelView: View {
             }
         }
         .overlay(alignment: .top) { levelToastView }
+        .sheet(isPresented: $showBetPicker) {
+            BetGamePicker(prefilter: betPickerPrefilter) { game in
+                showBetPicker = false
+                Task { await sendBetCard(game) }
+            }
+        }
         .task { await vm.start(api: model.api, realtime: model.realtime, channel: channel) }
         .onDisappear { Task { await vm.stop() } }
         .onChange(of: photoItem) { _, item in
@@ -253,6 +262,9 @@ struct ChannelView: View {
             switch await handleSlashCommand(draft) {
             case .sent: draft = ""; mentionResults = []; commandError = nil; return
             case .error(let msg): commandError = msg; return       // keep draft to fix
+            case .openBetPicker(let q):
+                betPickerPrefilter = q; showBetPicker = true
+                draft = ""; mentionResults = []; commandError = nil; return
             case .notACommand: break                                // fall through → plain send
             }
         }
@@ -289,7 +301,7 @@ struct ChannelView: View {
         mentionResults = []
     }
 
-    private enum SlashOutcome { case sent, error(String), notACommand }
+    private enum SlashOutcome { case sent, error(String), notACommand, openBetPicker(String) }
 
     /// Parse + execute a `/command arg…`. Returns `.notACommand` for anything we
     /// don't recognize (so it sends as normal text).
@@ -321,9 +333,29 @@ struct ChannelView: View {
             _ = await vm.send(body: summary, imageUrl: nil, kind: "stock", data: .object(fields))
             return .sent
 
+        case "/bets", "/bet":
+            return .openBetPicker(arg)
+
         default:
             return .notACommand
         }
+    }
+
+    /// Build + send a bet card for a chosen game.
+    private func sendBetCard(_ game: BetGame) async {
+        // Moneyline outcomes if present, else the first market's — for the card preview.
+        let ml = game.markets.first(where: { $0.market == "h2h" }) ?? game.markets.first
+        let outcomes: [JSONValue] = (ml?.outcomes ?? []).prefix(3).map { o in
+            .object(["label": .string(o.label), "odds": .number(o.oddsDecimal)])
+        }
+        var fields: [String: JSONValue] = [
+            "gameKey": .string(game.key),
+            "matchup": .string(game.matchup),
+            "outcomes": .array(outcomes),
+        ]
+        if let s = game.sportKey { fields["sportKey"] = .string(s) }
+        if let t = game.commenceTime { fields["commenceTime"] = .string(t) }
+        _ = await vm.send(body: "🎲 \(game.matchup)", imageUrl: nil, kind: "bet", data: .object(fields))
     }
 }
 
