@@ -21,10 +21,16 @@ struct AccountCreationView: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 12) {
-                Image("WhooshBolt")
-                    .renderingMode(.template).resizable().scaledToFit()
-                    .frame(width: 56, height: 56)
-                    .foregroundStyle(Color.whooshInk)
+                HStack(spacing: 12) {
+                    Image("WhooshBolt")
+                        .renderingMode(.template).resizable().scaledToFit()
+                        .frame(width: 40, height: 40)
+                    Image("WhooshWordmark")
+                        .renderingMode(.template).resizable().scaledToFit()
+                        .frame(height: 28)
+                }
+                .foregroundStyle(Color.whooshInk)
+                .accessibilityLabel("Whoosh")
                 Text(isSignUp ? "Create your account" : "Welcome back")
                     .font(.title.bold())
                 Text(isSignUp ? "Join Whoosh" : "Sign in to Whoosh")

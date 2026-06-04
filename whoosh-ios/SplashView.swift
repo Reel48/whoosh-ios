@@ -14,15 +14,22 @@ struct SplashView: View {
             Color.whooshLime
                 .ignoresSafeArea()
 
-            Image("WhooshBolt")
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 150, height: 150)
-                .foregroundStyle(Color.whooshInk)
-                .opacity(shown ? 1 : 0)
-                .scaleEffect(shown ? 1 : 0.92)
-                .accessibilityLabel("Whoosh")
+            VStack(spacing: 22) {
+                Image("WhooshBolt")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 128, height: 128)
+                Image("WhooshWordmark")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 40)
+            }
+            .foregroundStyle(Color.whooshInk)
+            .opacity(shown ? 1 : 0)
+            .scaleEffect(shown ? 1 : 0.92)
+            .accessibilityLabel("Whoosh")
         }
         .onAppear {
             withAnimation(.easeIn(duration: fadeInDuration)) {
