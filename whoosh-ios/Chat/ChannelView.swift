@@ -29,11 +29,21 @@ struct ChannelView: View {
         ("/stocks", "share a stock quote — /stocks AAPL"),
         ("/bets", "share open bets for a game"),
         ("/poll", "create a poll"),
+        ("/score", "share a live game score"),
+        ("/gift", "send Whoosh Bucks — /gift @user 100"),
+        ("/rank", "show your standing"),
     ]
     @State private var showBetPicker = false
     @State private var betPickerPrefilter = ""
     @State private var showPollComposer = false
     @State private var showFileImporter = false
+    @State private var showScorePicker = false
+    @State private var giftConfirm: GiftRequest?
+
+    struct GiftRequest: Identifiable {
+        let recipient: String; let amount: Double; let memo: String?
+        var id: String { "\(recipient)-\(amount)" }
+    }
 
     /// Document types the chat accepts (matches the server allow-list).
     private static let fileTypes: [UTType] = {
@@ -88,6 +98,22 @@ struct ChannelView: View {
             PollComposer { question, multi, options in
                 showPollComposer = false
                 Task { await sendPoll(question: question, multi: multi, options: options) }
+            }
+        }
+        .sheet(isPresented: $showScorePicker) {
+            ScorePicker { games, scope in
+                showScorePicker = false
+                Task { await sendScore(games, scope: scope) }
+            }
+        }
+        .confirmationDialog(
+            giftConfirm.map { "Send $\(String(format: "%.2f", $0.amount)) WB to @\($0.recipient)?" } ?? "",
+            isPresented: Binding(get: { giftConfirm != nil }, set: { if !$0 { giftConfirm = nil } }),
+            titleVisibility: .visible
+        ) {
+            if let g = giftConfirm {
+                Button("Send \(Money.wb(Int(g.amount * 100)))") { Task { await performGift(g) } }
+                Button("Cancel", role: .cancel) {}
             }
         }
         .fileImporter(isPresented: $showFileImporter, allowedContentTypes: Self.fileTypes) { result in
@@ -296,6 +322,12 @@ struct ChannelView: View {
             case .openPollComposer:
                 showPollComposer = true
                 draft = ""; mentionResults = []; commandError = nil; return
+            case .openScorePicker:
+                showScorePicker = true
+                draft = ""; mentionResults = []; commandError = nil; return
+            case .confirmGift(let g):
+                giftConfirm = g
+                draft = ""; mentionResults = []; commandError = nil; return
             case .notACommand: break                                // fall through → plain send
             }
         }
@@ -341,7 +373,10 @@ struct ChannelView: View {
         mentionResults = []
     }
 
-    private enum SlashOutcome { case sent, error(String), notACommand, openBetPicker(String), openPollComposer }
+    private enum SlashOutcome {
+        case sent, error(String), notACommand, openBetPicker(String), openPollComposer
+        case openScorePicker, confirmGift(GiftRequest)
+    }
 
     /// Parse + execute a `/command arg…`. Returns `.notACommand` for anything we
     /// don't recognize (so it sends as normal text).
@@ -379,9 +414,91 @@ struct ChannelView: View {
         case "/poll", "/polls":
             return .openPollComposer
 
+        case "/score", "/scores":
+            return .openScorePicker
+
+        case "/gift", "/tip":
+            // /gift @user <amount> [memo]
+            let toks = arg.split(separator: " ").map(String.init)
+            guard toks.count >= 2 else { return .error("Usage: /gift @user <amount>") }
+            let recipient = toks[0].replacingOccurrences(of: "@", with: "")
+            guard !recipient.isEmpty else { return .error("Usage: /gift @user <amount>") }
+            guard let amount = Double(toks[1]), amount > 0 else { return .error("Enter a positive amount, e.g. /gift @user 100") }
+            let memo = toks.count > 2 ? toks[2...].joined(separator: " ") : nil
+            return .confirmGift(GiftRequest(recipient: recipient, amount: amount, memo: memo))
+
+        case "/rank", "/ranks":
+            await sendRank()
+            return .sent
+
         default:
             return .notACommand
         }
+    }
+
+    /// Send WB to the confirmed recipient; the server authors the gift card
+    /// (delivered via realtime). Surfaces transfer errors inline.
+    private func performGift(_ g: GiftRequest) async {
+        do {
+            _ = try await model.api.giftInChat(channelId: channel.id, recipient: g.recipient, amount: g.amount, memo: g.memo)
+            Haptics.success()
+        } catch let e as APIError {
+            commandError = e.message
+        } catch {
+            commandError = "Couldn't send the gift."
+        }
+        giftConfirm = nil
+    }
+
+    /// Build + send a score card: a single game, or the day's top events.
+    private func sendScore(_ games: [Game], scope: String) async {
+        guard !games.isEmpty else { return }
+        func teamJSON(_ t: ScoreTeam) -> JSONValue {
+            .object([
+                "abbr": .string(t.abbr),
+                "score": t.score.map(JSONValue.string) ?? .null,
+                "logo": t.logo.map(JSONValue.string) ?? .null,
+            ])
+        }
+        let gameVals: [JSONValue] = games.prefix(5).map { g in
+            .object([
+                "league": .string(g.league), "state": .string(g.state), "detail": .string(g.detail),
+                "away": teamJSON(g.away), "home": teamJSON(g.home),
+                "link": g.link.map(JSONValue.string) ?? .null,
+            ])
+        }
+        let body: String
+        if scope == "top" {
+            body = "📊 Today's top games"
+        } else {
+            let g = games[0]
+            let a = "\(g.away.abbr) \(g.away.score ?? "")".trimmingCharacters(in: .whitespaces)
+            let h = "\(g.home.abbr) \(g.home.score ?? "")".trimmingCharacters(in: .whitespaces)
+            body = "🏟️ \(a) @ \(h) · \(g.detail)"
+        }
+        _ = await vm.send(body: body, imageUrl: nil, kind: "score",
+                          data: .object(["games": .array(gameVals), "scope": .string(scope)]))
+    }
+
+    /// Build + send a rank card from the viewer's chat + fantasy standing.
+    private func sendRank() async {
+        guard let overview = try? await model.api.chatOverview() else {
+            commandError = "Couldn't load your standing."; return
+        }
+        let me = overview.me
+        var fields: [String: JSONValue] = [
+            "username": .string(model.currentUsername),
+            "xpRank": .number(Double(me.rank)),
+            "level": .number(Double(me.level)),
+            "xp": .number(Double(me.xp)),
+        ]
+        if let board = try? await model.api.fantasyRankings(),
+           let row = board.rows.first(where: { $0.ownerId == me.userId }) {
+            fields["fantasyRank"] = .number(Double(row.rank))
+            fields["fantasyLeague"] = .string(row.leagueName)
+        }
+        _ = await vm.send(body: "🏆 Chat rank #\(me.rank) · Level \(me.level)", imageUrl: nil,
+                          kind: "rank", data: .object(fields))
     }
 
     /// Build + send a bet card for a chosen game.

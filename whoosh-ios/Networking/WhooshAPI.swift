@@ -157,6 +157,15 @@ actor WhooshAPI {
         try await post("/api/v1/chat/channels/\(channelId)/messages",
                        body: SendChatMessageBody(body: body, imageUrl: imageUrl, replyTo: replyTo, kind: kind, data: data))
     }
+    /// Send Whoosh Bucks to a chat @handle; the server posts the gift card and
+    /// returns it. Throws APIError on insufficient funds / unknown recipient / self-send.
+    @discardableResult
+    func giftInChat(channelId: Int, recipient: String, amount: Double, memo: String?) async throws -> ChatMessage {
+        struct B: Encodable { let channelId: Int; let recipient: String; let amount: Double; let memo: String? }
+        struct R: Decodable { let message: ChatMessage; let transferId: Int }
+        let r: R = try await post("/api/v1/chat/gift", body: B(channelId: channelId, recipient: recipient, amount: amount, memo: memo))
+        return r.message
+    }
     /// Toggle a poll vote; returns updated per-option counts + the viewer's selections.
     func votePoll(messageId: Int, optionId: String, on: Bool) async throws -> (counts: [String: Int], mine: [String]) {
         struct B: Encodable { let optionId: String; let on: Bool }

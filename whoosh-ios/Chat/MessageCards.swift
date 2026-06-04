@@ -157,6 +157,145 @@ struct StarboardCard: View {
     }
 }
 
+/// `/score` — a shared live game, or the day's top events. Each row shows
+/// away/home + scores and a status line; tapping a row opens it on ESPN.
+struct ScoreShareCard: View {
+    @Environment(\.openURL) private var openURL
+    let message: ChatMessage
+
+    private struct G: Identifiable {
+        let id = UUID()
+        let league: String, state: String, detail: String
+        let awayAbbr: String, awayScore: String?, homeAbbr: String, homeScore: String?
+        let link: URL?
+    }
+    private var games: [G] {
+        (message.data?["games"]?.arrayValue ?? []).compactMap { g in
+            guard let league = g["league"]?.stringValue, let state = g["state"]?.stringValue,
+                  let detail = g["detail"]?.stringValue,
+                  let away = g["away"], let home = g["home"],
+                  let aa = away["abbr"]?.stringValue, let ha = home["abbr"]?.stringValue else { return nil }
+            return G(league: league, state: state, detail: detail,
+                     awayAbbr: aa, awayScore: away["score"]?.stringValue,
+                     homeAbbr: ha, homeScore: home["score"]?.stringValue,
+                     link: g["link"]?.stringValue.flatMap(URL.init(string:)))
+        }
+    }
+    private var isTop: Bool { (message.data?["scope"]?.stringValue == "top") && games.count > 1 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if isTop {
+                Label("Today's top games", systemImage: "sparkles")
+                    .font(.caption.weight(.bold)).foregroundStyle(Color.brandBlue)
+            }
+            ForEach(games) { g in
+                Button { if let l = g.link { openURL(l) } } label: { row(g) }.buttonStyle(.plain)
+                if g.id != games.last?.id { Divider() }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: 300, alignment: .leading)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(.separator), lineWidth: 0.5))
+    }
+
+    private func row(_ g: G) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                teamLine(g.awayAbbr, g.awayScore); teamLine(g.homeAbbr, g.homeScore)
+            }
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(g.league).font(.system(size: 9, weight: .bold)).foregroundStyle(.tertiary)
+                HStack(spacing: 4) {
+                    if g.state == "in" { Circle().fill(Color.brandOrange).frame(width: 5, height: 5) }
+                    Text(g.detail).font(.caption2)
+                        .foregroundStyle(g.state == "in" ? Color.brandOrange : .secondary).lineLimit(1)
+                }
+            }
+        }
+    }
+    private func teamLine(_ abbr: String, _ score: String?) -> some View {
+        HStack(spacing: 6) {
+            Text(abbr).font(.subheadline.weight(.semibold))
+            Spacer(minLength: 6)
+            if let s = score { Text(s).font(.subheadline.weight(.heavy).monospacedDigit()) }
+        }
+        .frame(width: 96)
+    }
+}
+
+/// `/gift` — a Whoosh Bucks transfer card.
+struct GiftCard: View {
+    let message: ChatMessage
+    private var from: String { message.data?["fromUsername"]?.stringValue ?? "someone" }
+    private var to: String { message.data?["toUsername"]?.stringValue ?? "someone" }
+    private var amountCents: Int { message.data?["amountCents"]?.intValue ?? 0 }
+    private var memo: String? { message.data?["memo"]?.stringValue }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: "gift.fill").font(.title3).foregroundStyle(Color.brandLime)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("\(Money.wb(amountCents)) WB").font(.subheadline.weight(.bold))
+                    Text("@\(from) → @\(to)").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            if let m = memo, !m.isEmpty {
+                Text(m).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: 280, alignment: .leading)
+        .background(
+            LinearGradient(colors: [Color.brandLime.opacity(0.18), Color.brandOrange.opacity(0.10)],
+                           startPoint: .leading, endPoint: .trailing),
+            in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.brandLime.opacity(0.4), lineWidth: 0.5))
+    }
+}
+
+/// `/rank` — the sender's chat (and fantasy) standing.
+struct RankCard: View {
+    let message: ChatMessage
+    private var username: String { message.data?["username"]?.stringValue ?? "" }
+    private var xpRank: Int { message.data?["xpRank"]?.intValue ?? 0 }
+    private var level: Int { message.data?["level"]?.intValue ?? 0 }
+    private var xp: Int { message.data?["xp"]?.intValue ?? 0 }
+    private var fantasyRank: Int? { message.data?["fantasyRank"]?.intValue }
+    private var fantasyLeague: String? { message.data?["fantasyLeague"]?.stringValue }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "trophy.fill").font(.title3).foregroundStyle(Color.brandOrange)
+                Text(username.isEmpty ? "Standing" : "@\(username)").font(.subheadline.weight(.bold))
+            }
+            HStack(spacing: 16) {
+                stat("Chat", "#\(xpRank)")
+                stat("Level", "\(level)")
+                stat("XP", "\(xp)")
+            }
+            if let fr = fantasyRank {
+                Divider()
+                stat("Fantasy", "#\(fr)\(fantasyLeague.map { " · \($0)" } ?? "")")
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: 280, alignment: .leading)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(.separator), lineWidth: 0.5))
+    }
+    private func stat(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(label).font(.system(size: 9, weight: .bold)).foregroundStyle(.tertiary).textCase(.uppercase)
+            Text(value).font(.subheadline.weight(.semibold).monospacedDigit())
+        }
+    }
+}
+
 /// A welcome card auto-posted when a member finishes onboarding — the newcomer's
 /// avatar + a greeting. Reactable like any message (the @mention notifies them).
 struct WelcomeCard: View {
