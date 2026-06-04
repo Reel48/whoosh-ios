@@ -83,6 +83,8 @@ struct ChatCategory: Decodable, Sendable, Identifiable {
 
 struct ChatAuthor: Decodable, Sendable, Identifiable {
     let id: String; let username: String; let avatarUrl: String?; let level: Int; let roleColor: String
+    /// Premium-role holder → shows a role-colored verified seal by the name.
+    var isPremium: Bool? = nil
 }
 
 struct ChatReactionSummary: Decodable, Sendable, Identifiable {

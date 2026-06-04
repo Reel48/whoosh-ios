@@ -25,9 +25,17 @@ struct MessageRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 if showsHeader {
                     HStack(spacing: 6) {
-                        Text(message.author.username)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color(hex: message.author.roleColor))
+                        HStack(spacing: 3) {
+                            Text(message.author.username)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color(hex: message.author.roleColor))
+                            if message.author.isPremium == true {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Color(hex: message.author.roleColor))
+                                    .accessibilityLabel("Premium")
+                            }
+                        }
                         Text("lvl \(message.author.level)")
                             .font(.system(size: 9, weight: .bold))
                             .foregroundStyle(.secondary)
