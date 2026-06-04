@@ -11,6 +11,8 @@ struct BetsView: View {
     @State private var selection: WagerSelection?
     @State private var loaded = false
     @State private var error: String?
+    /// Selected sport filter on the Open tab; nil = All.
+    @State private var sport: String? = nil
 
     /// The (event, outcome) being wagered on — drives the sheet.
     struct WagerSelection: Identifiable {
@@ -24,6 +26,8 @@ struct BetsView: View {
                 ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented).padding()
+
+            if tab == .open { sportBar }
 
             List {
                 if tab == .open { openEvents } else { myBets }
@@ -45,7 +49,7 @@ struct BetsView: View {
         if events.isEmpty && loaded {
             ContentUnavailableView("No open games", systemImage: "dice")
         }
-        ForEach(sportSections, id: \.sport) { section in
+        ForEach(visibleSections, id: \.sport) { section in
             Section(BetMarketCatalog.sportTitle(section.sport)) {
                 ForEach(section.games) { game in
                     GameCard(game: game) { event, outcome in
@@ -54,6 +58,41 @@ struct BetsView: View {
                 }
             }
         }
+    }
+
+    /// Horizontal sport selector (only when there's more than one sport open).
+    @ViewBuilder private var sportBar: some View {
+        let sections = sportSections
+        if sections.count > 1 {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    sportChip("All", active: sport == nil) { sport = nil }
+                    ForEach(sections.compactMap(\.sport), id: \.self) { s in
+                        sportChip(BetMarketCatalog.sportTitle(s), active: sport == s) { sport = s }
+                    }
+                }
+                .padding(.horizontal).padding(.bottom, 8)
+            }
+        }
+    }
+
+    private func sportChip(_ title: String, active: Bool, _ tap: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.tap()
+            withAnimation(Anim.snappy) { tap() }
+        } label: {
+            Text(title).font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 14).padding(.vertical, 7)
+                .background(active ? Color.brandLime : Color(.secondarySystemBackground), in: Capsule())
+                .foregroundStyle(active ? Color.whooshInk : .primary)
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Open sections filtered to the selected sport (all when nil).
+    private var visibleSections: [(sport: String?, games: [BetGame])] {
+        guard let sport else { return sportSections }
+        return sportSections.filter { $0.sport == sport }
     }
 
     private var sportSections: [(sport: String?, games: [BetGame])] {
