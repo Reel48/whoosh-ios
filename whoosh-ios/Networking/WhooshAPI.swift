@@ -157,6 +157,13 @@ actor WhooshAPI {
         try await post("/api/v1/chat/channels/\(channelId)/messages",
                        body: SendChatMessageBody(body: body, imageUrl: imageUrl, replyTo: replyTo, kind: kind, data: data))
     }
+    /// Search GIFs via the server-side Giphy proxy (empty query = trending).
+    func searchGifs(query: String, limit: Int = 24) async throws -> [GifResult] {
+        struct R: Decodable { let gifs: [GifResult] }
+        let q = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let r: R = try await get("/api/v1/chat/gifs?q=\(q)&limit=\(limit)")
+        return r.gifs
+    }
     /// Send Whoosh Bucks to a chat @handle; the server posts the gift card and
     /// returns it. Throws APIError on insufficient funds / unknown recipient / self-send.
     @discardableResult

@@ -32,12 +32,15 @@ struct ChannelView: View {
         ("/score", "share a live game score"),
         ("/gift", "send Whoosh Bucks — /gift @user 100"),
         ("/rank", "show your standing"),
+        ("/gif", "search and send a GIF"),
     ]
     @State private var showBetPicker = false
     @State private var betPickerPrefilter = ""
     @State private var showPollComposer = false
     @State private var showFileImporter = false
     @State private var showScorePicker = false
+    @State private var showGiphyPicker = false
+    @State private var gifQuery = ""
     @State private var giftConfirm: GiftRequest?
 
     struct GiftRequest: Identifiable {
@@ -104,6 +107,12 @@ struct ChannelView: View {
             ScorePicker { games, scope in
                 showScorePicker = false
                 Task { await sendScore(games, scope: scope) }
+            }
+        }
+        .sheet(isPresented: $showGiphyPicker) {
+            GiphyPicker(initialQuery: gifQuery) { url in
+                showGiphyPicker = false
+                Task { _ = await vm.send(body: "", imageUrl: url.absoluteString, kind: "gif") }
             }
         }
         .confirmationDialog(
@@ -251,6 +260,11 @@ struct ChannelView: View {
             Button { showFileImporter = true } label: {
                 Image(systemName: "paperclip").font(.title3).foregroundStyle(.secondary)
             }
+            Button { gifQuery = ""; showGiphyPicker = true } label: {
+                Text("GIF").font(.system(size: 12, weight: .heavy)).foregroundStyle(.secondary)
+                    .padding(.horizontal, 5).padding(.vertical, 2)
+                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.secondary.opacity(0.55), lineWidth: 1.3))
+            }
             TextField(composerPlaceholder, text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -328,6 +342,9 @@ struct ChannelView: View {
             case .openScorePicker:
                 showScorePicker = true
                 draft = ""; mentionResults = []; commandError = nil; return
+            case .openGifPicker(let q):
+                gifQuery = q; showGiphyPicker = true
+                draft = ""; mentionResults = []; commandError = nil; return
             case .confirmGift(let g):
                 giftConfirm = g
                 draft = ""; mentionResults = []; commandError = nil; return
@@ -378,7 +395,7 @@ struct ChannelView: View {
 
     private enum SlashOutcome {
         case sent, error(String), notACommand, openBetPicker(String), openPollComposer
-        case openScorePicker, confirmGift(GiftRequest)
+        case openScorePicker, confirmGift(GiftRequest), openGifPicker(String)
     }
 
     /// Parse + execute a `/command arg…`. Returns `.notACommand` for anything we
@@ -419,6 +436,9 @@ struct ChannelView: View {
 
         case "/score", "/scores":
             return .openScorePicker
+
+        case "/gif", "/gifs":
+            return .openGifPicker(arg)
 
         case "/gift", "/tip":
             // /gift @user <amount> [memo]
