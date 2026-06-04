@@ -13,6 +13,7 @@ struct OnboardingView: View {
     @State private var avatarData: Data?
     @State private var submitting = false
     @State private var error: String?
+    @State private var errorShake = 0
     @State private var checkTask: Task<Void, Never>?
 
     private var canSubmit: Bool { (availability?.available ?? false) && !submitting }
@@ -51,18 +52,17 @@ struct OnboardingView: View {
                 }
             }
             .padding(.horizontal, 24)
+            .shake(trigger: errorShake)
 
             if let error { Text(error).foregroundStyle(.red).font(.footnote) }
 
-            Button(action: { Task { await finish() } }) {
-                Group {
-                    if submitting { ProgressView() } else { Text("Enter Whoosh").bold() }
-                }
-                .frame(maxWidth: .infinity).padding()
-                .background(Color.whooshLime).foregroundStyle(Color.whooshInk)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .opacity(canSubmit ? 1 : 0.5)
+            Button {
+                Task { await finish() }
+            } label: {
+                if submitting { ProgressView().tint(Color.whooshInk) } else { Text("Enter Whoosh") }
             }
+            .buttonStyle(.lime)
+            .opacity(canSubmit ? 1 : 0.5)
             .disabled(!canSubmit)
             .padding(.horizontal, 24)
 
@@ -101,8 +101,10 @@ struct OnboardingView: View {
             model.didFinishOnboarding()
         } catch let e as APIError {
             error = e.message            // "That handle is taken." on conflict
+            errorShake += 1; Haptics.warning()
         } catch {
             self.error = error.localizedDescription
+            errorShake += 1; Haptics.warning()
         }
     }
 }

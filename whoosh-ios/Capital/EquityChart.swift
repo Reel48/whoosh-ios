@@ -6,6 +6,8 @@ import Charts
 struct EquityChart: View {
     let series: [BalancePoint]
     @State private var selectedDay: Date?
+    @State private var revealed = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var selected: BalancePoint? {
         guard let selectedDay else { return nil }
@@ -57,6 +59,17 @@ struct EquityChart: View {
         .chartXSelection(value: $selectedDay)
         .chartYAxis { AxisMarks(position: .leading) }
         .frame(height: 200)
+        // Draw the curve in left→right on first appear.
+        .mask(alignment: .leading) {
+            GeometryReader { geo in
+                Rectangle().frame(width: revealed ? geo.size.width : 0)
+            }
+        }
+        .onAppear {
+            guard !revealed else { return }
+            if reduceMotion { revealed = true }
+            else { withAnimation(.easeOut(duration: 0.7)) { revealed = true } }
+        }
     }
 
     private var emptyState: some View {

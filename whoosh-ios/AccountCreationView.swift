@@ -12,6 +12,7 @@ struct AccountCreationView: View {
     @State private var busy = false
     @State private var error: String?
     @State private var note: String?
+    @State private var errorShake = 0
 
     private var canSubmit: Bool {
         email.contains("@") && password.count >= 8 && !busy
@@ -50,20 +51,18 @@ struct AccountCreationView: View {
                 if let error { Text(error).foregroundStyle(.red).font(.footnote) }
                 if let note { Text(note).foregroundStyle(.secondary).font(.footnote) }
 
-                Button(action: { Task { await submit() } }) {
-                    Group {
-                        if busy { ProgressView() }
-                        else { Text(isSignUp ? "Create account" : "Sign in").bold() }
-                    }
-                    .frame(maxWidth: .infinity).padding()
-                    .background(Color.whooshLime)
-                    .foregroundStyle(Color.whooshInk)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .opacity(canSubmit ? 1 : 0.5)
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if busy { ProgressView().tint(Color.whooshInk) }
+                    else { Text(isSignUp ? "Create account" : "Sign in") }
                 }
+                .buttonStyle(.lime)
+                .opacity(canSubmit ? 1 : 0.5)
                 .disabled(!canSubmit)
             }
             .padding(.horizontal, 24)
+            .shake(trigger: errorShake)
 
             Spacer()
 
@@ -93,6 +92,8 @@ struct AccountCreationView: View {
             await model.didAuthenticate()
         } catch {
             self.error = error.localizedDescription
+            errorShake += 1
+            Haptics.warning()
         }
     }
 }

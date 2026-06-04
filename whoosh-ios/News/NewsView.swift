@@ -125,7 +125,7 @@ private struct FeedList: View {
 
     var body: some View {
         if entries.isEmpty {
-            ContentUnavailableView(empty, systemImage: "newspaper")
+            EmptyStateCard(icon: "newspaper", title: empty)
         } else {
             List(entries) { e in
                 HStack(spacing: 12) {
