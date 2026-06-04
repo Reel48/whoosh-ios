@@ -114,12 +114,16 @@ struct ChatHomeView: View {
 
     private func hero(_ me: ChatMe) -> some View {
         let progress = ChatLevels.progress(xp: me.xp, level: me.level)
+        // XP/level visuals take the viewer's top-role color (Member purple,
+        // Premium lime, Admin blue); ink text stays readable on all three.
+        let topRole = me.roles.max(by: { $0.priority < $1.priority })
+        let roleColor = topRole.map { Color(hex: $0.color) } ?? .brandLime
         return VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 ChatAvatar(url: me.avatarUrl, size: 52)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("@\(model.currentUsername)").font(.headline)
-                    if let role = me.roles.max(by: { $0.priority < $1.priority }) {
+                    if let role = topRole {
                         Text(role.name).font(.caption2.bold())
                             .foregroundStyle(Color.whooshInk)
                             .padding(.horizontal, 8).padding(.vertical, 2)
@@ -127,7 +131,7 @@ struct ChatHomeView: View {
                     }
                 }
                 Spacer()
-                LevelBadge(level: me.level)
+                LevelBadge(level: me.level, color: roleColor)
             }
 
             // Profile stats
@@ -138,7 +142,7 @@ struct ChatHomeView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                ProgressView(value: progress).tint(Color.whooshLime)
+                ProgressView(value: progress).tint(roleColor)
                 HStack {
                     Text("Level \(me.level)")
                     Spacer()
@@ -248,15 +252,16 @@ enum ChatLevels {
     }
 }
 
-/// A small circular level chip.
+/// A small circular level chip, tinted to the user's top-role color.
 struct LevelBadge: View {
     let level: Int
+    var color: Color = .brandLime
     var body: some View {
         Text("\(level)")
             .font(.subheadline.bold().monospacedDigit())
             .foregroundStyle(Color.whooshInk)
             .frame(width: 38, height: 38)
-            .background(Color.whooshLime, in: Circle())
+            .background(color, in: Circle())
             .overlay(alignment: .bottom) {
                 Text("LVL").font(.system(size: 7, weight: .heavy)).foregroundStyle(Color.whooshInk.opacity(0.6)).offset(y: -3)
             }
