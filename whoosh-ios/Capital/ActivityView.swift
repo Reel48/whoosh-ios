@@ -17,20 +17,20 @@ struct ActivityView: View {
                     Image(systemName: Self.icon(e.kind))
                         .frame(width: 28).foregroundStyle(.secondary)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(Self.label(e.kind)).font(.body)
+                        Text(Self.label(e.kind)).font(.ck(.body))
                         Text(e.memo ?? Self.relativeDate(e.createdAt))
-                            .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            .font(.ck(.caption)).foregroundStyle(.secondary).lineLimit(1)
                     }
                     Spacer()
                     Text(Money.wb(e.amountCents, signed: true))
-                        .font(.callout.weight(.medium))
+                        .font(.ck(.callout, .medium))
                         .foregroundStyle(Money.tint(e.amountCents))
                 }
             }
         }
         .navigationTitle("Activity")
         .task { if !loaded { await load() } }
-        .overlay { if let error { Text(error).foregroundStyle(.bad).font(.footnote) } }
+        .overlay { if let error { Text(error).foregroundStyle(.bad).font(.ck(.footnote)) } }
     }
 
     private func load() async {

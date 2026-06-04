@@ -21,14 +21,14 @@ struct InvestView: View {
                             NavigationLink(value: p.symbol) {
                                 HStack {
                                     VStack(alignment: .leading) {
-                                        Text(p.symbol).font(.body.bold())
-                                        Text("\(p.shares, specifier: "%.4g") shares").font(.caption).foregroundStyle(.secondary)
+                                        Text(p.symbol).font(.ck(.body, .bold))
+                                        Text("\(p.shares, specifier: "%.4g") shares").font(.ck(.caption)).foregroundStyle(.secondary)
                                     }
                                     Spacer()
                                     VStack(alignment: .trailing) {
-                                        Text(Money.wb(p.marketValueCents ?? 0)).font(.body)
+                                        Text(Money.wb(p.marketValueCents ?? 0)).font(.ck(.body))
                                         if let day = p.dayChangeCents {
-                                            Text(Money.wb(day, signed: true)).font(.caption).foregroundStyle(Money.tint(day))
+                                            Text(Money.wb(day, signed: true)).font(.ck(.caption)).foregroundStyle(Money.tint(day))
                                         }
                                     }
                                 }
@@ -39,7 +39,7 @@ struct InvestView: View {
                 Section("Watchlist") {
                     if watchlist.isEmpty {
                         Text("Search to find symbols, then ★ to watch them.")
-                            .font(.footnote).foregroundStyle(.secondary)
+                            .font(.ck(.footnote)).foregroundStyle(.secondary)
                     }
                     ForEach(watchlist) { w in
                         NavigationLink(value: w.symbol) {
@@ -51,13 +51,13 @@ struct InvestView: View {
                     Section("Recent orders") {
                         ForEach(orders) { o in
                             HStack {
-                                Text(o.side.uppercased()).font(.caption.bold())
+                                Text(o.side.uppercased()).font(.ck(.caption, .bold))
                                     .foregroundStyle(o.side == "buy" ? Color.brandBlue : Color.brandOrange)
-                                Text(o.symbol).font(.body)
+                                Text(o.symbol).font(.ck(.body))
                                 Spacer()
                                 VStack(alignment: .trailing) {
-                                    Text(Money.wb(o.totalCents)).font(.callout)
-                                    Text("\(o.shares, specifier: "%.4g") sh").font(.caption2).foregroundStyle(.secondary)
+                                    Text(Money.wb(o.totalCents)).font(.ck(.callout))
+                                    Text("\(o.shares, specifier: "%.4g") sh").font(.ck(.caption2)).foregroundStyle(.secondary)
                                 }
                             }
                         }
@@ -69,11 +69,11 @@ struct InvestView: View {
                         NavigationLink(value: r.symbol) {
                             HStack {
                                 VStack(alignment: .leading) {
-                                    Text(r.symbol).font(.body.bold())
-                                    Text(r.name).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                    Text(r.symbol).font(.ck(.body, .bold))
+                                    Text(r.name).font(.ck(.caption)).foregroundStyle(.secondary).lineLimit(1)
                                 }
                                 Spacer()
-                                Text(r.kind).font(.caption2).foregroundStyle(.secondary)
+                                Text(r.kind).font(.ck(.caption2)).foregroundStyle(.secondary)
                             }
                         }
                     }

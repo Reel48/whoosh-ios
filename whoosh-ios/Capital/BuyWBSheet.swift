@@ -17,7 +17,7 @@ struct BuyWBSheet: View {
         NavigationStack {
             VStack(spacing: 24) {
                 VStack(spacing: 4) {
-                    Text("Buy Whoosh Bucks").font(.title2.bold())
+                    Text("Buy Whoosh Bucks").font(.ck(.title2, .bold))
                     Text("You'll get \(Money.wb(Int(amount * 10 * 100))) WB")
                         .foregroundStyle(.secondary)
                 }
@@ -28,7 +28,7 @@ struct BuyWBSheet: View {
                         Button {
                             amount = p
                         } label: {
-                            Text("$\(Int(p))").font(.headline)
+                            Text("$\(Int(p))").font(.ck(.headline))
                                 .frame(maxWidth: .infinity).padding(.vertical, 14)
                                 .background(amount == p ? Color.brandBlue : Color(.secondarySystemBackground))
                                 .foregroundStyle(amount == p ? Color.white : .primary)
@@ -38,7 +38,7 @@ struct BuyWBSheet: View {
                 }
                 .padding(.horizontal)
 
-                if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
+                if let error { Text(error).foregroundStyle(.bad).font(.ck(.footnote)) }
 
                 Button(action: { Task { await checkout() } }) {
                     Group { if busy { ProgressView() } else { Text("Continue to checkout").bold() } }
@@ -50,7 +50,7 @@ struct BuyWBSheet: View {
                 .disabled(busy)
 
                 Text("Opens secure checkout in your browser.")
-                    .font(.caption2).foregroundStyle(.secondary)
+                    .font(.ck(.caption2)).foregroundStyle(.secondary)
                 Spacer()
             }
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }

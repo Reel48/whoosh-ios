@@ -21,7 +21,7 @@ struct CapitalView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     Text("Whoosh Capital")
-                        .font(.largeTitle.bold())
+                        .font(.ck(.largeTitle, .bold))
                         .padding(.horizontal)
                     if !ticker.isEmpty { TickerStrip(quotes: ticker) }
                     balanceHero
@@ -37,7 +37,7 @@ struct CapitalView: View {
                     }
                     .padding(.horizontal)
                     positionsSection
-                    if let error { Text(error).foregroundStyle(.bad).font(.footnote).padding(.horizontal) }
+                    if let error { Text(error).foregroundStyle(.bad).font(.ck(.footnote)).padding(.horizontal) }
                 }
                 .padding(.top, 8)
                 .padding(.bottom, 20)
@@ -93,8 +93,8 @@ struct CapitalView: View {
 
     private func actionLabel(_ title: String, _ icon: String, badge: Bool = false) -> some View {
         VStack(spacing: 6) {
-            Image(systemName: icon).font(.body)
-            Text(title).font(.caption)
+            Image(systemName: icon).font(.ck(.body))
+            Text(title).font(.ck(.caption))
         }
         .frame(maxWidth: .infinity).padding(.vertical, 12)
         .background(Color(.secondarySystemBackground))
@@ -142,7 +142,7 @@ struct CapitalView: View {
 
     private var balanceHero: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Total balance").font(.subheadline).foregroundStyle(.secondary)
+            Text("Total balance").font(.ck(.subheadline)).foregroundStyle(.secondary)
             if let d = dashboard {
                 CountUpText(value: Double(d.allocation.totalEquityCents), format: { Money.wb(Int($0)) })
                     .font(.system(size: 40, weight: .bold, design: .rounded))
@@ -155,7 +155,7 @@ struct CapitalView: View {
                     Text("\(Money.percent(d.returns.totalReturnFraction)) all-time")
                         .foregroundStyle(Money.tint(d.returns.totalReturnCents))
                 }
-                .font(.subheadline.weight(.medium))
+                .font(.ck(.subheadline, .medium))
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     Skeleton(width: 190, height: 40, cornerRadius: 10)
@@ -173,11 +173,11 @@ struct CapitalView: View {
     private var bonusBanner: some View {
         Button { Task { await claimBonus() } } label: {
             HStack(spacing: 12) {
-                Image(systemName: "gift.fill").font(.title3)
+                Image(systemName: "gift.fill").font(.ck(.title3))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Your daily bonus is ready").font(.subheadline.bold())
+                    Text("Your daily bonus is ready").font(.ck(.subheadline, .bold))
                     Text(((bonus?.streak ?? 0) > 0 ? "Keep your \(bonus!.streak)-day streak alive — " : "")
-                         + "tap to claim").font(.caption)
+                         + "tap to claim").font(.ck(.caption))
                 }
                 Spacer()
                 if claimingBonus { ProgressView() }
@@ -215,8 +215,8 @@ struct CapitalView: View {
 
     private func allocationChip(_ label: String, _ cents: Int, _ icon: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Label(label, systemImage: icon).font(.caption).foregroundStyle(.secondary)
-            Text(Money.wb(cents)).font(.callout.bold())
+            Label(label, systemImage: icon).font(.ck(.caption)).foregroundStyle(.secondary)
+            Text(Money.wb(cents)).font(.ck(.callout, .bold))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -228,19 +228,19 @@ struct CapitalView: View {
 
     private var positionsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Holdings").font(.headline).padding(.horizontal)
+            Text("Holdings").font(.ck(.headline)).padding(.horizontal)
             if let positions = dashboard?.positions, !positions.isEmpty {
                 ForEach(Array(positions.enumerated()), id: \.element.id) { i, p in
                     HStack {
                         VStack(alignment: .leading) {
-                            Text(p.symbol).font(.body.bold())
-                            Text("\(p.shares, specifier: "%.4g") shares").font(.caption).foregroundStyle(.secondary)
+                            Text(p.symbol).font(.ck(.body, .bold))
+                            Text("\(p.shares, specifier: "%.4g") shares").font(.ck(.caption)).foregroundStyle(.secondary)
                         }
                         Spacer()
                         VStack(alignment: .trailing) {
-                            Text(Money.wb(p.marketValueCents ?? 0)).font(.body)
+                            Text(Money.wb(p.marketValueCents ?? 0)).font(.ck(.body))
                             if let day = p.dayChangeCents {
-                                Text(Money.wb(day, signed: true)).font(.caption).foregroundStyle(Money.tint(day))
+                                Text(Money.wb(day, signed: true)).font(.ck(.caption)).foregroundStyle(Money.tint(day))
                             }
                         }
                     }
@@ -248,7 +248,7 @@ struct CapitalView: View {
                     .reveal(index: i)
                 }
             } else if dashboard != nil {
-                Text("No investments yet").font(.footnote).foregroundStyle(.secondary).padding(.horizontal)
+                Text("No investments yet").font(.ck(.footnote)).foregroundStyle(.secondary).padding(.horizontal)
             }
         }
     }

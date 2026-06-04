@@ -26,15 +26,15 @@ struct MessageRow: View {
                 if showsHeader {
                     HStack(spacing: 6) {
                         Text(message.author.username)
-                            .font(.subheadline.weight(.semibold))
+                            .font(.ck(.subheadline, .semibold))
                             .foregroundStyle(Color(hex: message.author.roleColor))
                         Text("lvl \(message.author.level)")
                             .font(.system(size: 9, weight: .bold))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 5).padding(.vertical, 1)
                             .background(Color(.tertiarySystemBackground), in: Capsule())
-                        Text(ChatTime.timeOfDay(message.createdAt)).font(.caption2).foregroundStyle(.tertiary)
-                        if message.editedAt != nil { Text("(edited)").font(.caption2).foregroundStyle(.tertiary) }
+                        Text(ChatTime.timeOfDay(message.createdAt)).font(.ck(.caption2)).foregroundStyle(.tertiary)
+                        if message.editedAt != nil { Text("(edited)").font(.ck(.caption2)).foregroundStyle(.tertiary) }
                     }
                 }
                 contentBody
@@ -49,7 +49,7 @@ struct MessageRow: View {
                                     Text(r.emoji)
                                     Text("\(r.count)").contentTransition(.numericText(value: Double(r.count)))
                                 }
-                                .font(.caption2.weight(.medium))
+                                .font(.ck(.caption2, .medium))
                                 .padding(.horizontal, 8).padding(.vertical, 4)
                                 .background(r.mine ? Color.brandBlue.opacity(0.30) : Color(.secondarySystemBackground), in: Capsule())
                                 .overlay(Capsule().stroke(r.mine ? Color.brandBlue.opacity(0.5) : .clear, lineWidth: 1))
@@ -96,7 +96,7 @@ struct MessageRow: View {
         // The raw URL text is stripped from the body — only the rich embed
         // represents the link. Any surrounding text still shows.
         if !cleanedBody.isEmpty {
-            Text(Self.styledMentions(cleanedBody)).font(.body)
+            Text(Self.styledMentions(cleanedBody)).font(.ck(.body))
         }
         if let link = Self.firstLink(in: message.body) {
             LinkPreview(url: link)

@@ -36,7 +36,7 @@ struct BetsView: View {
             ScrollViewReader { proxy in
                 List {
                     if tab == .open { openEvents } else { myBets }
-                    if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
+                    if let error { Text(error).foregroundStyle(.bad).font(.ck(.footnote)) }
                 }
                 .onChange(of: loaded) { _, done in if done { focusIfNeeded(proxy) } }
             }
@@ -101,7 +101,7 @@ struct BetsView: View {
             Haptics.tap()
             withAnimation(Anim.snappy) { tap() }
         } label: {
-            Text(title).font(.subheadline.weight(.semibold))
+            Text(title).font(.ck(.subheadline, .semibold))
                 .padding(.horizontal, 14).padding(.vertical, 7)
                 .background(active ? Color.brandBlue : Color(.secondarySystemBackground), in: Capsule())
                 .foregroundStyle(active ? Color.white : .primary)
@@ -134,14 +134,14 @@ struct BetsView: View {
         ForEach(bets) { w in
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(w.event.title).font(.body).lineLimit(1)
-                    Text(w.outcomeLabel).font(.caption).foregroundStyle(.secondary)
+                    Text(w.event.title).font(.ck(.body)).lineLimit(1)
+                    Text(w.outcomeLabel).font(.ck(.caption)).foregroundStyle(.secondary)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(statusLabel(w)).font(.caption.bold()).foregroundStyle(statusColor(w.status))
+                    Text(statusLabel(w)).font(.ck(.caption, .bold)).foregroundStyle(statusColor(w.status))
                     Text("\(Money.wb(w.stakeCents)) → \(Money.wb(w.status == "open" ? w.potentialCents : w.payoutCents))")
-                        .font(.caption2).foregroundStyle(.secondary)
+                        .font(.ck(.caption2)).foregroundStyle(.secondary)
                 }
             }
         }
@@ -190,7 +190,7 @@ private struct GameCard: View {
             ForEach(game.markets) { market in
                 if multiMarket {
                     Text(BetMarketCatalog.label(market.market))
-                        .font(.caption.bold()).foregroundStyle(.secondary)
+                        .font(.ck(.caption, .bold)).foregroundStyle(.secondary)
                         .padding(.top, 4)
                 }
                 ForEach(market.outcomes) { o in
@@ -199,7 +199,7 @@ private struct GameCard: View {
                             Text(o.label + pointSuffix(o))
                             Spacer()
                             Text(String(format: "%.2f×", o.oddsDecimal))
-                                .font(.callout.weight(.semibold)).foregroundStyle(Color.whooshGreen)
+                                .font(.ck(.callout, .semibold)).foregroundStyle(Color.whooshGreen)
                         }
                     }
                     .buttonStyle(.plain)
@@ -207,12 +207,12 @@ private struct GameCard: View {
             }
         } label: {
             VStack(alignment: .leading, spacing: 2) {
-                Text(game.matchup).font(.body.weight(.semibold)).lineLimit(2)
+                Text(game.matchup).font(.ck(.body, .semibold)).lineLimit(2)
                 HStack(spacing: 6) {
                     if let t = gameTime { Text(t) }
                     if multiMarket { Text("· \(game.markets.count) markets") }
                 }
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.ck(.caption)).foregroundStyle(.secondary)
             }
         }
     }

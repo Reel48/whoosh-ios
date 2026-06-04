@@ -29,12 +29,12 @@ struct BetGamePicker: View {
                     List(filtered) { game in
                         Button { onPick(game) } label: {
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(game.matchup).font(.body.weight(.semibold)).foregroundStyle(.primary)
+                                Text(game.matchup).font(.ck(.body, .semibold)).foregroundStyle(.primary)
                                 HStack(spacing: 6) {
                                     Text(BetMarketCatalog.sportTitle(game.sportKey))
                                     if let t = gameTime(game.commenceTime) { Text("· \(t)") }
                                 }
-                                .font(.caption).foregroundStyle(.secondary)
+                                .font(.ck(.caption)).foregroundStyle(.secondary)
                             }
                         }
                     }

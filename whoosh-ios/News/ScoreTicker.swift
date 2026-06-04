@@ -107,10 +107,10 @@ private struct ScoreCard: View {
     private func teamRow(_ t: ScoreTeam, dim: Bool) -> some View {
         HStack(spacing: 6) {
             TeamLogo(image: t.logo.flatMap { logos[$0] })
-            Text(t.abbr).font(.caption.weight(.bold))
+            Text(t.abbr).font(.ck(.caption, .bold))
             Spacer(minLength: 4)
             if showScores, let score = t.score {
-                Text(score).font(.caption.weight(.heavy)).monospacedDigit()
+                Text(score).font(.ck(.caption, .heavy)).monospacedDigit()
             }
         }
         .foregroundStyle(dim ? Color.secondary : Color.primary)

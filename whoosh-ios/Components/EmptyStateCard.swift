@@ -14,10 +14,10 @@ struct EmptyStateCard: View {
             Image(systemName: icon)
                 .font(.system(size: 40, weight: .semibold))
                 .foregroundStyle(.secondary)
-            Text(title).font(.headline)
+            Text(title).font(.ck(.headline))
             if let message {
                 Text(message)
-                    .font(.subheadline)
+                    .font(.ck(.subheadline))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }

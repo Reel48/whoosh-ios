@@ -20,7 +20,7 @@ struct ChatRoleAdminView: View {
                         Circle().fill(Color(hex: r.color)).frame(width: 12, height: 12)
                         Text(r.name)
                         Spacer()
-                        Text(r.key).font(.caption).foregroundStyle(.secondary)
+                        Text(r.key).font(.ck(.caption)).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -45,14 +45,14 @@ struct ChatRoleAdminView: View {
                             Circle().fill(Color(hex: r.color)).frame(width: 10, height: 10)
                             Text(r.name)
                             Spacer()
-                            Button("Assign") { Task { await assign(target, r, on: true) } }.font(.caption)
-                            Button("Remove", role: .destructive) { Task { await assign(target, r, on: false) } }.font(.caption)
+                            Button("Assign") { Task { await assign(target, r, on: true) } }.font(.ck(.caption))
+                            Button("Remove", role: .destructive) { Task { await assign(target, r, on: false) } }.font(.ck(.caption))
                         }
                     }
                 }
             }
 
-            if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
+            if let error { Text(error).foregroundStyle(.bad).font(.ck(.footnote)) }
         }
         .navigationTitle("Chat Roles")
         .navigationBarTitleDisplayMode(.inline)
