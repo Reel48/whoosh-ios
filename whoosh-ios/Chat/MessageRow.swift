@@ -66,7 +66,8 @@ struct MessageRow: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(.top, showsHeader ? 6 : 1)
+        // Inter-message spacing is uniform via the list's LazyVStack(spacing:);
+        // grouping is conveyed by the header, not by varying the gap.
         .contentShape(Rectangle())
         .contextMenu {
             Button { onReact("⭐") } label: { Label("Star", systemImage: "star") }
