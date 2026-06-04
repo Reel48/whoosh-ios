@@ -74,3 +74,59 @@ struct StockCard: View {
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(.separator), lineWidth: 0.5))
     }
 }
+
+/// `/bets` — a shared game with a couple of moneyline odds. Tapping deep-links
+/// to the Bet page (switches to the Capital tab and focuses the game).
+struct BetCard: View {
+    @EnvironmentObject private var model: AppModel
+    let message: ChatMessage
+
+    private var gameKey: String? { message.data?["gameKey"]?.stringValue }
+    private var matchup: String { message.data?["matchup"]?.stringValue ?? "Game" }
+    private var sportKey: String? { message.data?["sportKey"]?.stringValue }
+    private var outcomes: [(label: String, odds: Double)] {
+        (message.data?["outcomes"]?.arrayValue ?? []).compactMap { o in
+            guard let l = o["label"]?.stringValue, let d = o["odds"]?.doubleValue else { return nil }
+            return (l, d)
+        }
+    }
+
+    var body: some View {
+        Button {
+            guard let key = gameKey else { return }
+            Haptics.tap()
+            model.openBet(gameKey: key)
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "dice.fill").font(.caption).foregroundStyle(Color.brandOrange)
+                    Text(matchup).font(.subheadline.weight(.bold)).foregroundStyle(.primary).lineLimit(2)
+                }
+                if !outcomes.isEmpty {
+                    HStack(spacing: 8) {
+                        ForEach(Array(outcomes.enumerated()), id: \.offset) { _, o in
+                            HStack(spacing: 4) {
+                                Text(o.label).lineLimit(1)
+                                Text(String(format: "%.2f×", o.odds)).fontWeight(.semibold).foregroundStyle(Color.brandBlue)
+                            }
+                            .font(.caption2)
+                            .padding(.horizontal, 8).padding(.vertical, 5)
+                            .background(Color(.tertiarySystemBackground), in: Capsule())
+                        }
+                    }
+                }
+                HStack(spacing: 4) {
+                    Text(BetMarketCatalog.sportTitle(sportKey)).font(.caption2).foregroundStyle(.secondary)
+                    Spacer()
+                    Text("Open in Bets").font(.caption2.weight(.semibold)).foregroundStyle(Color.brandBlue)
+                    Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold)).foregroundStyle(Color.brandBlue)
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: 300, alignment: .leading)
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(.separator), lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+    }
+}

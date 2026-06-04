@@ -3,6 +3,9 @@ import SwiftUI
 /// House wagers: browse open events to bet on, and review your own bets.
 struct BetsView: View {
     @EnvironmentObject private var model: AppModel
+    /// When opened from a tapped chat bet card: filter to that game's sport,
+    /// expand it, and scroll to it.
+    var focusGameKey: String? = nil
 
     private enum Tab: String, CaseIterable { case open = "Open", mine = "My Bets" }
     @State private var tab: Tab = .open
@@ -13,6 +16,7 @@ struct BetsView: View {
     @State private var error: String?
     /// Selected sport filter on the Open tab; nil = All.
     @State private var sport: String? = nil
+    @State private var didFocus = false
 
     /// The (event, outcome) being wagered on — drives the sheet.
     struct WagerSelection: Identifiable {
@@ -29,9 +33,12 @@ struct BetsView: View {
 
             if tab == .open { sportBar }
 
-            List {
-                if tab == .open { openEvents } else { myBets }
-                if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
+            ScrollViewReader { proxy in
+                List {
+                    if tab == .open { openEvents } else { myBets }
+                    if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
+                }
+                .onChange(of: loaded) { _, done in if done { focusIfNeeded(proxy) } }
             }
         }
         .navigationTitle("Bets")
@@ -52,11 +59,24 @@ struct BetsView: View {
         ForEach(visibleSections, id: \.sport) { section in
             Section(BetMarketCatalog.sportTitle(section.sport)) {
                 ForEach(section.games) { game in
-                    GameCard(game: game) { event, outcome in
+                    GameCard(game: game, forceExpand: game.key == focusGameKey) { event, outcome in
                         selection = WagerSelection(event: event, outcome: outcome)
                     }
+                    .id(game.key)
                 }
             }
+        }
+    }
+
+    /// On a deep-link, filter to the focused game's sport and scroll to it (once).
+    private func focusIfNeeded(_ proxy: ScrollViewProxy) {
+        guard !didFocus, let key = focusGameKey else { return }
+        didFocus = true
+        if let game = BetMarketCatalog.groupByGame(events).first(where: { $0.key == key }) {
+            sport = game.sportKey
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation { proxy.scrollTo(key, anchor: .top) }
         }
     }
 
@@ -152,8 +172,16 @@ struct BetsView: View {
 /// Spread / Total), each with its tappable outcomes. Mirrors the web EventCard.
 private struct GameCard: View {
     let game: BetGame
+    var forceExpand: Bool = false
     var onPick: (BetEvent, BetOutcome) -> Void
-    @State private var expanded = false
+    @State private var expanded: Bool
+
+    init(game: BetGame, forceExpand: Bool = false, onPick: @escaping (BetEvent, BetOutcome) -> Void) {
+        self.game = game
+        self.forceExpand = forceExpand
+        self.onPick = onPick
+        _expanded = State(initialValue: forceExpand)
+    }
 
     private var multiMarket: Bool { game.markets.count > 1 }
 

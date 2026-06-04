@@ -43,6 +43,14 @@ struct CapitalView: View {
                 .padding(.bottom, 20)
             }
             .toolbar(.hidden, for: .navigationBar)
+            // Deep-link from a tapped chat bet card → push the Bet page focused
+            // on that game.
+            .navigationDestination(isPresented: Binding(
+                get: { model.pendingBetGameKey != nil },
+                set: { if !$0 { model.pendingBetGameKey = nil } }
+            )) {
+                BetsView(focusGameKey: model.pendingBetGameKey)
+            }
             .refreshable { await load(haptic: true) }
             .task { if !loaded { await load(); loaded = true } }
             .sheet(isPresented: $showBuy) { BuyWBSheet() }
