@@ -17,12 +17,13 @@ struct ChatHomeView: View {
     var body: some View {
         NavigationStack(path: $path) {
             VStack(spacing: 0) {
-                header
-
                 Group {
                     if let overview {
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: 0) {
+                                // Inside the scroll so it slides away with the
+                                // content, like the title on other pages.
+                                header
                                 hero(overview.me).padding(.horizontal, 16).padding(.bottom, 8)
 
                                 ForEach(overview.categories) { category in
