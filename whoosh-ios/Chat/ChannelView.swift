@@ -131,7 +131,10 @@ struct ChannelView: View {
     private var messageList: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
+                // A small uniform gap between every message so they read as
+                // distinct — important for slash-command/cards. Grouping is shown
+                // by the header (avatar/name), not by tightening the spacing.
+                LazyVStack(alignment: .leading, spacing: 6) {
                     ForEach(Array(vm.messages.enumerated()), id: \.element.id) { i, msg in
                         let prev = i > 0 ? vm.messages[i - 1] : nil
                         if dayChanged(prev, msg) { DayDivider(label: ChatTime.dayLabel(msg.createdAt)) }
