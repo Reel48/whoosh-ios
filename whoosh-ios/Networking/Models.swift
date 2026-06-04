@@ -93,8 +93,20 @@ struct ChatReactionSummary: Decodable, Sendable, Identifiable {
 /// A decoded JSON value for `chat_message.data` (shape varies by message `kind`).
 /// Decodable from the API DTO and constructible from the raw Realtime payload
 /// (`[String: Any]`), so structured cards render identically on both paths.
-enum JSONValue: Decodable, Sendable, Equatable {
+enum JSONValue: Codable, Sendable, Equatable {
     case string(String), number(Double), bool(Bool), object([String: JSONValue]), array([JSONValue]), null
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch self {
+        case .string(let s): try c.encode(s)
+        case .number(let n): try c.encode(n)
+        case .bool(let b): try c.encode(b)
+        case .object(let o): try c.encode(o)
+        case .array(let a): try c.encode(a)
+        case .null: try c.encodeNil()
+        }
+    }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
@@ -192,7 +204,10 @@ struct SendChatMessageResult: Decodable, Sendable {
     let message: ChatMessage; let level: Int; let leveledUp: Bool
 }
 
-struct SendChatMessageBody: Encodable { let body: String?; let imageUrl: String?; let replyTo: Int? }
+struct SendChatMessageBody: Encodable {
+    let body: String?; let imageUrl: String?; let replyTo: Int?
+    var kind: String? = nil; var data: JSONValue? = nil
+}
 struct ChatReactBody: Encodable { let emoji: String; let on: Bool }
 struct ChatEditBody: Encodable { let body: String }
 struct ChatRoleAssignBody: Encodable { let userId: String; let roleId: Int; let on: Bool }

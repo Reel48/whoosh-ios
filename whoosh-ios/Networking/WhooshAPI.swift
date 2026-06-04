@@ -152,9 +152,10 @@ actor WhooshAPI {
         return r.messages
     }
     @discardableResult
-    func sendChatMessage(channelId: Int, body: String?, imageUrl: String? = nil, replyTo: Int? = nil) async throws -> SendChatMessageResult {
+    func sendChatMessage(channelId: Int, body: String?, imageUrl: String? = nil, replyTo: Int? = nil,
+                         kind: String? = nil, data: JSONValue? = nil) async throws -> SendChatMessageResult {
         try await post("/api/v1/chat/channels/\(channelId)/messages",
-                       body: SendChatMessageBody(body: body, imageUrl: imageUrl, replyTo: replyTo))
+                       body: SendChatMessageBody(body: body, imageUrl: imageUrl, replyTo: replyTo, kind: kind, data: data))
     }
     @discardableResult
     func reactChat(messageId: Int, emoji: String, on: Bool) async throws -> Int {
