@@ -120,6 +120,34 @@ struct StockCard: View {
     }
 }
 
+/// A welcome card auto-posted when a member finishes onboarding — the newcomer's
+/// avatar + a greeting. Reactable like any message (the @mention notifies them).
+struct WelcomeCard: View {
+    let message: ChatMessage
+
+    private var username: String { message.data?["username"]?.stringValue ?? "newcomer" }
+    private var avatarUrl: String? { message.data?["avatarUrl"]?.stringValue }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ChatAvatar(url: avatarUrl, size: 44)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("🎉 New member!").font(.caption2.weight(.bold)).foregroundStyle(Color.brandLime)
+                Text("Welcome @\(username)").font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
+                Text("Say hi 👋").font(.caption2).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: 300, alignment: .leading)
+        .background(
+            LinearGradient(colors: [Color.brandBlue.opacity(0.14), Color.brandPurple.opacity(0.10)],
+                           startPoint: .leading, endPoint: .trailing),
+            in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.brandBlue.opacity(0.25), lineWidth: 0.5))
+    }
+}
+
 /// `/poll` — an interactive poll. Each option shows a tappable row with a vote
 /// bar + count; the viewer's picks are highlighted. Single- or multi-select per
 /// the poll's `multi` flag. Counts come from `data.counts` (kept live by the
