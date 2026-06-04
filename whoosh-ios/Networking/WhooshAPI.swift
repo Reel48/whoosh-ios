@@ -257,7 +257,12 @@ actor WhooshAPI {
         struct R: Decodable { let ok: Bool }
         let _: R = try await post("/api/v1/chat/admin/roles/assign", body: ChatRoleAssignBody(userId: userId, roleId: roleId, on: on))
     }
-    /// Upload a chat image (multipart) → public URL.
+    /// Upload a chat file attachment (PDF/Excel/etc., multipart) → public URL.
+    func uploadChatFile(fileData: Data, fileName: String, mimeType: String) async throws -> URL {
+        try await uploadChatImage(imageData: fileData, fileName: fileName, mimeType: mimeType)
+    }
+    /// Upload a chat image (multipart) → public URL. Also backs file uploads —
+    /// the server routes by MIME type (chat-images vs chat-files).
     func uploadChatImage(imageData: Data, fileName: String = "image.jpg", mimeType: String = "image/jpeg") async throws -> URL {
         struct R: Decodable { let url: String }
         var req = await request("POST", "/api/v1/chat/upload")

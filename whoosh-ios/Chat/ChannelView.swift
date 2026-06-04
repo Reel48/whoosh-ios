@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import Combine
+import UniformTypeIdentifiers
 
 /// One channel: live message stream (history via api + realtime inserts/edits),
 /// a composer with photo + @mentions, reactions, and edit/delete.
@@ -32,6 +33,18 @@ struct ChannelView: View {
     @State private var showBetPicker = false
     @State private var betPickerPrefilter = ""
     @State private var showPollComposer = false
+    @State private var showFileImporter = false
+
+    /// Document types the chat accepts (matches the server allow-list).
+    private static let fileTypes: [UTType] = {
+        var t: [UTType] = [.pdf, .plainText, .commaSeparatedText, .spreadsheet, .presentation]
+        for id in ["org.openxmlformats.wordprocessingml.document", "com.microsoft.word.doc",
+                   "org.openxmlformats.spreadsheetml.sheet", "com.microsoft.excel.xls",
+                   "org.openxmlformats.presentationml.presentation", "com.microsoft.powerpoint.ppt"] {
+            if let u = UTType(id) { t.append(u) }
+        }
+        return t
+    }()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -76,6 +89,9 @@ struct ChannelView: View {
                 showPollComposer = false
                 Task { await sendPoll(question: question, multi: multi, options: options) }
             }
+        }
+        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: Self.fileTypes) { result in
+            if case .success(let url) = result { Task { await sendFile(url) } }
         }
         .task { await vm.start(api: model.api, realtime: model.realtime, channel: channel) }
         .onDisappear { Task { await vm.stop() } }
@@ -202,6 +218,9 @@ struct ChannelView: View {
         HStack(spacing: 10) {
             PhotosPicker(selection: $photoItem, matching: .images) {
                 Image(systemName: "photo").font(.title3).foregroundStyle(.secondary)
+            }
+            Button { showFileImporter = true } label: {
+                Image(systemName: "paperclip").font(.title3).foregroundStyle(.secondary)
             }
             TextField(composerPlaceholder, text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
@@ -385,6 +404,26 @@ struct ChannelView: View {
             "counts": .object([:]),
         ])
         _ = await vm.send(body: "📊 \(question)", imageUrl: nil, kind: "poll", data: data)
+    }
+
+    /// Read a picked document, upload it, and post a file card.
+    private func sendFile(_ url: URL) async {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url) else { commandError = "Couldn't read that file."; return }
+        let name = url.lastPathComponent
+        let mime = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
+        sending = true; defer { sending = false }
+        guard let uploaded = try? await model.api.uploadChatFile(fileData: data, fileName: name, mimeType: mime) else {
+            commandError = "Upload failed."; return
+        }
+        let fields: [String: JSONValue] = [
+            "url": .string(uploaded.absoluteString),
+            "filename": .string(name),
+            "mimeType": .string(mime),
+            "sizeBytes": .number(Double(data.count)),
+        ]
+        _ = await vm.send(body: "📎 \(name)", imageUrl: nil, kind: "file", data: .object(fields))
     }
 }
 

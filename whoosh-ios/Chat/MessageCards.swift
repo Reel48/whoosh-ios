@@ -1,5 +1,50 @@
 import SwiftUI
 
+/// `/file` attachment card — a document (PDF/Excel/…). Shows a type icon, name,
+/// and size; tapping opens it (QuickLook via the system).
+struct FileCard: View {
+    @Environment(\.openURL) private var openURL
+    let message: ChatMessage
+
+    private var url: URL? { (message.data?["url"]?.stringValue).flatMap(URL.init(string:)) }
+    private var filename: String { message.data?["filename"]?.stringValue ?? "Attachment" }
+    private var sizeBytes: Int { message.data?["sizeBytes"]?.intValue ?? 0 }
+    private var icon: String {
+        let ext = (filename as NSString).pathExtension.lowercased()
+        switch ext {
+        case "pdf": return "doc.richtext.fill"
+        case "xls", "xlsx", "csv": return "tablecells.fill"
+        case "doc", "docx": return "doc.text.fill"
+        case "ppt", "pptx": return "rectangle.on.rectangle.fill"
+        default: return "doc.fill"
+        }
+    }
+    private var sizeLabel: String {
+        guard sizeBytes > 0 else { return "" }
+        return ByteCountFormatter.string(fromByteCount: Int64(sizeBytes), countStyle: .file)
+    }
+
+    var body: some View {
+        Button { if let url { openURL(url) } } label: {
+            HStack(spacing: 12) {
+                Image(systemName: icon).font(.title3).foregroundStyle(Color.brandBlue)
+                    .frame(width: 32)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(filename).font(.subheadline.weight(.semibold)).foregroundStyle(.primary).lineLimit(1)
+                    if !sizeLabel.isEmpty { Text(sizeLabel).font(.caption2).foregroundStyle(.secondary) }
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "arrow.down.circle").font(.body).foregroundStyle(.secondary)
+            }
+            .padding(12)
+            .frame(maxWidth: 280, alignment: .leading)
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(.separator), lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 /// Cards for structured chat messages (`ChatMessage.kind` + `.data`). Each reads
 /// the JSON payload defensively and degrades to the message `body` if a field is
 /// missing — so a malformed or future-shaped payload never renders broken.
