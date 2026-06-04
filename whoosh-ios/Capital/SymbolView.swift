@@ -37,7 +37,7 @@ struct SymbolView: View {
                 statsSection
                 orderSection
                 if let message {
-                    Text(message).foregroundStyle(isError ? .red : Color.whooshGreen).font(.footnote)
+                    Text(message).foregroundStyle(isError ? Color.bad : Color.good).font(.footnote)
                         .padding(.horizontal)
                 }
             }
@@ -83,12 +83,13 @@ struct SymbolView: View {
     private var chartSection: some View {
         VStack(spacing: 8) {
             if let candles = detail?.snapshot.candles, candles.count > 1 {
+                let trend = Money.direction(Double(candles.first?.closeCents ?? 0), Double(candles.last?.closeCents ?? 0))
                 Chart(candles) { c in
                     LineMark(x: .value("Date", c.date), y: .value("Price", Double(c.closeCents) / 100))
-                        .foregroundStyle(Color.whooshGreen)
+                        .foregroundStyle(trend)
                     AreaMark(x: .value("Date", c.date), y: .value("Price", Double(c.closeCents) / 100))
                         .foregroundStyle(LinearGradient(
-                            colors: [Color.whooshLime.opacity(0.45), Color.whooshLime.opacity(0.03)],
+                            colors: [trend.opacity(0.45), trend.opacity(0.03)],
                             startPoint: .top, endPoint: .bottom))
                 }
                 .chartYAxis { AxisMarks(position: .leading) }

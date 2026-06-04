@@ -60,7 +60,7 @@ struct SwipeDeck: View {
         HStack {
             stamp("KEEP", .whooshGreen, opacity: max(0, drag.width) / threshold)
             Spacer()
-            stamp("PASS", .red, opacity: max(0, -drag.width) / threshold)
+            stamp("PASS", .bad, opacity: max(0, -drag.width) / threshold)
         }
         .padding(20)
     }
@@ -85,7 +85,7 @@ struct SwipeDeck: View {
 
     private var controls: some View {
         HStack(spacing: 28) {
-            roundButton("xmark", .red) { commit("left") }
+            roundButton("xmark", .bad) { commit("left") }
             roundButton("arrow.uturn.backward", .secondary) { Task { await undo() } }
                 .disabled(lastSwiped == nil)
                 .opacity(lastSwiped == nil ? 0.4 : 1)

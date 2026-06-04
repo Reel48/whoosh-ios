@@ -50,7 +50,7 @@ struct PoolDetailView: View {
                         .font(.caption2).foregroundStyle(.tertiary)
                 }
 
-                if let error { Text(error).foregroundStyle(.red).font(.footnote) }
+                if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
             } else if loaded {
                 ContentUnavailableView("Pool unavailable", systemImage: "person.3")
             } else {

@@ -48,7 +48,7 @@ struct AccountCreationView: View {
                     .padding().background(Color(.secondarySystemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                if let error { Text(error).foregroundStyle(.red).font(.footnote) }
+                if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
                 if let note { Text(note).foregroundStyle(.secondary).font(.footnote) }
 
                 Button {

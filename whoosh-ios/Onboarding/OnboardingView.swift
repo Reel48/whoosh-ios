@@ -48,13 +48,13 @@ struct OnboardingView: View {
                     Text("Checking…").font(.footnote).foregroundStyle(.secondary)
                 } else if let a = availability {
                     Text(a.available ? "✓ Available" : (a.reason ?? "Unavailable"))
-                        .font(.footnote).foregroundStyle(a.available ? .green : .red)
+                        .font(.footnote).foregroundStyle(a.available ? Color.good : Color.bad)
                 }
             }
             .padding(.horizontal, 24)
             .shake(trigger: errorShake)
 
-            if let error { Text(error).foregroundStyle(.red).font(.footnote) }
+            if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
 
             Button {
                 Task { await finish() }

@@ -37,7 +37,7 @@ struct CapitalView: View {
                     }
                     .padding(.horizontal)
                     positionsSection
-                    if let error { Text(error).foregroundStyle(.red).font(.footnote).padding(.horizontal) }
+                    if let error { Text(error).foregroundStyle(.bad).font(.footnote).padding(.horizontal) }
                 }
                 .padding(.top, 8)
                 .padding(.bottom, 20)
@@ -93,7 +93,7 @@ struct CapitalView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(alignment: .topTrailing) {
             if badge {
-                Circle().fill(Color.red).frame(width: 9, height: 9).padding(6)
+                Circle().fill(Color.brandOrange).frame(width: 9, height: 9).padding(6)
             }
         }
     }

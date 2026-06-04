@@ -18,9 +18,9 @@ struct HomeView: View {
             NavigationStack { AccountView() }.tag(4)
                 .tabItem { Label("Account", systemImage: "person.crop.circle") }
         }
-        // On-brand selected tint (green reads in light + dark; lime is too light
-        // for small tab items) + a tactile tick on every tab switch.
-        .tint(.whooshGreen)
+        // Selected tab = interactive state → brand blue (green is reserved for
+        // "good", lime is too light for small tab items). Tactile tick on switch.
+        .tint(.brandBlue)
         .sensoryFeedback(.selection, trigger: selection)
     }
 }

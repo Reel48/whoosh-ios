@@ -12,7 +12,10 @@ struct RankingsView: View {
                 ForEach(rows) { row in
                     HStack(spacing: 12) {
                         Text("\(row.rank)").font(.headline.monospacedDigit())
-                            .foregroundStyle(row.rank <= 3 ? Color.whooshGreen : .secondary)
+                            // Medal colors: gold / silver / bronze, then neutral.
+                            .foregroundStyle(row.rank == 1 ? Color.warning
+                                : row.rank == 2 ? Color.secondary
+                                : row.rank == 3 ? Color.brandOrange : Color.secondary)
                             .frame(width: 26)
                         TeamAvatar(url: row.avatarUrl, name: row.teamName, size: 34)
                         VStack(alignment: .leading, spacing: 1) {

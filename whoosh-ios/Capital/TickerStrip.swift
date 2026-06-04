@@ -41,7 +41,7 @@ struct TickerStrip: View {
                     Text(Money.wb(q.priceCents)).font(.caption).foregroundStyle(.secondary)
                     Text(Money.percent(q.changePct / 100))
                         .font(.caption2.bold())
-                        .foregroundStyle(q.changePct >= 0 ? Color.whooshGreen : .red)
+                        .foregroundStyle(q.changePct >= 0 ? Color.good : Color.bad)
                 }
                 .padding(.horizontal, 10).padding(.vertical, 6)
                 .background(Color(.secondarySystemBackground))

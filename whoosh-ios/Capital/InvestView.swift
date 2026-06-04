@@ -52,7 +52,7 @@ struct InvestView: View {
                         ForEach(orders) { o in
                             HStack {
                                 Text(o.side.uppercased()).font(.caption.bold())
-                                    .foregroundStyle(o.side == "buy" ? Color.whooshGreen : .red)
+                                    .foregroundStyle(o.side == "buy" ? Color.brandBlue : Color.brandOrange)
                                 Text(o.symbol).font(.body)
                                 Spacer()
                                 VStack(alignment: .trailing) {

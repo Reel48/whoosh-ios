@@ -52,7 +52,7 @@ struct ChatRoleAdminView: View {
                 }
             }
 
-            if let error { Text(error).foregroundStyle(.red).font(.footnote) }
+            if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
         }
         .navigationTitle("Chat Roles")
         .navigationBarTitleDisplayMode(.inline)

@@ -113,7 +113,7 @@ private struct LinkSleeperCard: View {
                 .buttonStyle(.borderedProminent).tint(Color.whooshLime).foregroundStyle(Color.whooshInk)
                 .disabled(username.trimmingCharacters(in: .whitespaces).isEmpty || busy)
             }
-            if let error { Text(error).foregroundStyle(.red).font(.footnote) }
+            if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
         }
         .padding(.vertical, 4)
     }

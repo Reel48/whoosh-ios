@@ -30,7 +30,7 @@ struct ActivityView: View {
         }
         .navigationTitle("Activity")
         .task { if !loaded { await load() } }
-        .overlay { if let error { Text(error).foregroundStyle(.red).font(.footnote) } }
+        .overlay { if let error { Text(error).foregroundStyle(.bad).font(.footnote) } }
     }
 
     private func load() async {

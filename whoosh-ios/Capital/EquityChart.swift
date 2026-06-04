@@ -16,6 +16,12 @@ struct EquityChart: View {
         })
     }
 
+    /// Green if the balance ended at/above where it started over the range, red if down.
+    private var trend: Color {
+        guard let first = series.first?.balanceCents, let last = series.last?.balanceCents else { return .good }
+        return Money.direction(Double(first), Double(last))
+    }
+
     var body: some View {
         if series.count < 2 {
             emptyState
@@ -30,12 +36,12 @@ struct EquityChart: View {
                 let value = Double(point.balanceCents) / 100
                 LineMark(x: .value("Day", point.date), y: .value("Balance", value))
                     .interpolationMethod(.catmullRom)
-                    .foregroundStyle(Color.whooshGreen)
+                    .foregroundStyle(trend)
                 AreaMark(x: .value("Day", point.date), y: .value("Balance", value))
                     .interpolationMethod(.catmullRom)
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Color.whooshLime.opacity(0.55), Color.whooshLime.opacity(0.05)],
+                            colors: [trend.opacity(0.45), trend.opacity(0.04)],
                             startPoint: .top, endPoint: .bottom
                         )
                     )
@@ -53,7 +59,7 @@ struct EquityChart: View {
                     }
                 PointMark(x: .value("Day", sel.date),
                           y: .value("Balance", Double(sel.balanceCents) / 100))
-                    .foregroundStyle(Color.whooshGreen)
+                    .foregroundStyle(trend)
             }
         }
         .chartXSelection(value: $selectedDay)
