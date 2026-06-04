@@ -1,33 +1,37 @@
 import SwiftUI
 import UIKit
 
-/// Tinder-style card deck. Swipe right to **keep** (+1 point), left to **pass**.
-/// Drag the top card or use the buttons; haptics fire on commit. The parent owns
-/// the article array and records the decision via `onDecide`.
-struct SwipeDeck: View {
-    @Binding var articles: [Article]
-    /// League label shown on each card (e.g. "NFL").
-    var sportLabel: String? = nil
-    /// Called when the top card is decided. `direction` is "right" (keep) / "left" (pass).
-    var onDecide: (Article, String) async -> Void
-    /// Undo the most recent decision (re-inserts the card).
-    var onUndo: (Article) async -> Void
+/// Tinder-style card deck. Swipe right / left (or use the buttons) to decide the
+/// top card; haptics fire on commit. Generic over the item + its card view, so
+/// News (keep/pass articles) and the Starboard (boost/meh messages) share it.
+/// The parent owns the array and records the decision via `onDecide` ("right" /
+/// "left"); `onUndo` re-inserts the last card.
+struct SwipeDeck<Item: Identifiable, Card: View>: View {
+    @Binding var items: [Item]
+    var rightLabel: String = "KEEP"
+    var leftLabel: String = "PASS"
+    var rightColor: Color = .whooshGreen
+    var rightIcon: String = "heart.fill"
+    var emptyTitle: String = "You're all caught up"
+    var emptySubtitle: String = "Check back later."
+    /// `direction` is "right" or "left".
+    var onDecide: (Item, String) async -> Void
+    var onUndo: (Item) async -> Void
+    @ViewBuilder var card: (Item) -> Card
 
     @State private var drag: CGSize = .zero
-    @State private var lastSwiped: Article?
+    @State private var lastSwiped: Item?
 
     private let threshold: CGFloat = 110
 
     var body: some View {
-        // Fill the available space (so the deck never overflows past the safe
-        // area into the tab bar) and leave clear clearance below the controls.
         VStack(spacing: 14) {
             ZStack {
-                if articles.isEmpty {
+                if items.isEmpty {
                     emptyState
                 } else {
-                    ForEach(Array(articles.prefix(3).enumerated()).reversed(), id: \.element.id) { idx, article in
-                        cardView(article, idx: idx)
+                    ForEach(Array(items.prefix(3).enumerated()).reversed(), id: \.element.id) { idx, item in
+                        cardView(item, idx: idx)
                     }
                 }
             }
@@ -42,9 +46,9 @@ struct SwipeDeck: View {
     // MARK: Cards
 
     @ViewBuilder
-    private func cardView(_ article: Article, idx: Int) -> some View {
+    private func cardView(_ item: Item, idx: Int) -> some View {
         let isTop = idx == 0
-        ArticleCard(article: article, sportLabel: sportLabel)
+        card(item)
             .overlay(alignment: .top) { if isTop { decisionStamps } }
             .scaleEffect(isTop ? 1 : 1 - CGFloat(idx) * 0.04)
             .offset(y: isTop ? 0 : CGFloat(idx) * 12)
@@ -58,9 +62,9 @@ struct SwipeDeck: View {
 
     private var decisionStamps: some View {
         HStack {
-            stamp("KEEP", .whooshGreen, opacity: max(0, drag.width) / threshold)
+            stamp(rightLabel, rightColor, opacity: max(0, drag.width) / threshold)
             Spacer()
-            stamp("PASS", .bad, opacity: max(0, -drag.width) / threshold)
+            stamp(leftLabel, .bad, opacity: max(0, -drag.width) / threshold)
         }
         .padding(20)
     }
@@ -76,8 +80,8 @@ struct SwipeDeck: View {
     private var emptyState: some View {
         VStack(spacing: 10) {
             Image(systemName: "checkmark.circle").font(.largeTitle).foregroundStyle(Color.whooshGreen)
-            Text("You're all caught up").font(.headline)
-            Text("Switch sports or check back later.").font(.footnote).foregroundStyle(.secondary)
+            Text(emptyTitle).font(.headline)
+            Text(emptySubtitle).font(.footnote).foregroundStyle(.secondary)
         }
     }
 
@@ -89,10 +93,10 @@ struct SwipeDeck: View {
             roundButton("arrow.uturn.backward", .secondary) { Task { await undo() } }
                 .disabled(lastSwiped == nil)
                 .opacity(lastSwiped == nil ? 0.4 : 1)
-            roundButton("heart.fill", .whooshGreen) { commit("right") }
+            roundButton(rightIcon, rightColor) { commit("right") }
         }
-        .disabled(articles.isEmpty)
-        .opacity(articles.isEmpty ? 0.4 : 1)
+        .disabled(items.isEmpty)
+        .opacity(items.isEmpty ? 0.4 : 1)
     }
 
     private func roundButton(_ icon: String, _ color: Color, _ tap: @escaping () -> Void) -> some View {
@@ -118,7 +122,7 @@ struct SwipeDeck: View {
     }
 
     private func commit(_ direction: String) {
-        guard let top = articles.first else { return }
+        guard let top = items.first else { return }
         UIImpactFeedbackGenerator(style: direction == "right" ? .medium : .light).impactOccurred()
         withAnimation(.easeIn(duration: 0.25)) {
             drag = CGSize(width: direction == "right" ? 700 : -700, height: 0)
@@ -128,14 +132,14 @@ struct SwipeDeck: View {
             await onDecide(top, direction)
             try? await Task.sleep(for: .milliseconds(220))
             drag = .zero
-            if articles.first?.id == top.id { articles.removeFirst() }
+            if items.first?.id == top.id { items.removeFirst() }
         }
     }
 
     private func undo() async {
         guard let last = lastSwiped else { return }
         await onUndo(last)
-        articles.insert(last, at: 0)
+        items.insert(last, at: 0)
         lastSwiped = nil
     }
 }

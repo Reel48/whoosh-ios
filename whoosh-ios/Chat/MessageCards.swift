@@ -120,6 +120,43 @@ struct StockCard: View {
     }
 }
 
+/// A starboard message rendered as a swipe-deck card: author, the message
+/// content, its image (if any), and the ⭐ count that earned its spot.
+struct StarboardCard: View {
+    let message: ChatMessage
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                ChatAvatar(url: message.author.avatarUrl, size: 40)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(message.author.username).font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color(hex: message.author.roleColor))
+                    Label("\(message.starCount)", systemImage: "star.fill")
+                        .font(.caption2.bold()).foregroundStyle(Color.brandOrange)
+                }
+                Spacer()
+            }
+            if !message.body.isEmpty {
+                Text(message.body).font(.title3).foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if let urlStr = message.imageUrl, let url = URL(string: urlStr) {
+                AsyncImage(url: url) { img in img.resizable().scaledToFit() } placeholder: {
+                    Color(.tertiarySystemBackground)
+                }
+                .frame(maxWidth: .infinity).frame(maxHeight: 260).clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
+    }
+}
+
 /// A welcome card auto-posted when a member finishes onboarding — the newcomer's
 /// avatar + a greeting. Reactable like any message (the @mention notifies them).
 struct WelcomeCard: View {

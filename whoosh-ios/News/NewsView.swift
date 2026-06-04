@@ -85,8 +85,8 @@ struct NewsView: View {
                 Spacer(); ProgressView(); Spacer()
             } else {
                 SwipeDeck(
-                    articles: $deck,
-                    sportLabel: NewsCatalog.sports.first { $0.key == sport }?.label,
+                    items: $deck,
+                    emptySubtitle: "Switch sports or check back later.",
                     onDecide: { article, direction in
                         // On the ALL feed, attribute the keep to the card's own
                         // sport so it counts toward the right chat channel.
@@ -94,6 +94,9 @@ struct NewsView: View {
                     },
                     onUndo: { article in
                         _ = try? await model.api.undoSwipe(guid: article.guid)
+                    },
+                    card: { article in
+                        ArticleCard(article: article, sportLabel: NewsCatalog.sports.first(where: { $0.key == sport })?.label)
                     }
                 )
             }

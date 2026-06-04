@@ -158,6 +158,8 @@ struct ChatMessage: Decodable, Sendable, Identifiable {
     let imageUrl: String?
     let replyToId: Int?
     var starCount: Int
+    /// Distinct boosters from the starboard swipe deck (all-time).
+    var boostCount: Int?
     var reactions: [ChatReactionSummary]
     let mine: Bool
     let createdAt: String
