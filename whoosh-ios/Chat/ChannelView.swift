@@ -149,7 +149,7 @@ struct ChannelView: View {
             PhotosPicker(selection: $photoItem, matching: .images) {
                 Image(systemName: "photo").font(.title3).foregroundStyle(.secondary)
             }
-            TextField(editing == nil ? "Message #\(channel.slug)" : "Edit message…", text: $draft, axis: .vertical)
+            TextField(composerPlaceholder, text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 18))
@@ -174,6 +174,16 @@ struct ChannelView: View {
 
     private var canSend: Bool {
         (!draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || pendingImage != nil) && !sending
+    }
+
+    /// Composer placeholder. Public channels keep the Discord-style `#slug`;
+    /// DMs and league/pool chats (whose slugs are raw ids) just say "Message…".
+    private var composerPlaceholder: String {
+        if editing != nil { return "Edit message…" }
+        switch channel.kind {
+        case "dm", "group": return "Message…"
+        default: return "Message #\(channel.slug)"
+        }
     }
 
     @ViewBuilder
