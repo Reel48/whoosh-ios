@@ -27,9 +27,11 @@ struct ChannelView: View {
         ("/spoiler", "hide text until tapped"),
         ("/stocks", "share a stock quote — /stocks AAPL"),
         ("/bets", "share open bets for a game"),
+        ("/poll", "create a poll"),
     ]
     @State private var showBetPicker = false
     @State private var betPickerPrefilter = ""
+    @State private var showPollComposer = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -69,6 +71,12 @@ struct ChannelView: View {
                 Task { await sendBetCard(game) }
             }
         }
+        .sheet(isPresented: $showPollComposer) {
+            PollComposer { question, multi, options in
+                showPollComposer = false
+                Task { await sendPoll(question: question, multi: multi, options: options) }
+            }
+        }
         .task { await vm.start(api: model.api, realtime: model.realtime, channel: channel) }
         .onDisappear { Task { await vm.stop() } }
         .onChange(of: photoItem) { _, item in
@@ -89,6 +97,7 @@ struct ChannelView: View {
                             message: msg,
                             showsHeader: showsHeader(prev, msg),
                             onReact: { emoji in _ = Task { await vm.react(msg, emoji: emoji) } },
+                            onVote: { opt in _ = Task { await vm.votePoll(msg, optionId: opt) } },
                             canEdit: msg.mine, onEdit: { editing = msg; draft = msg.body },
                             canDelete: msg.mine, onDelete: { _ = Task { await vm.delete(msg) } })
                             .id(msg.id)
@@ -265,6 +274,9 @@ struct ChannelView: View {
             case .openBetPicker(let q):
                 betPickerPrefilter = q; showBetPicker = true
                 draft = ""; mentionResults = []; commandError = nil; return
+            case .openPollComposer:
+                showPollComposer = true
+                draft = ""; mentionResults = []; commandError = nil; return
             case .notACommand: break                                // fall through → plain send
             }
         }
@@ -301,7 +313,7 @@ struct ChannelView: View {
         mentionResults = []
     }
 
-    private enum SlashOutcome { case sent, error(String), notACommand, openBetPicker(String) }
+    private enum SlashOutcome { case sent, error(String), notACommand, openBetPicker(String), openPollComposer }
 
     /// Parse + execute a `/command arg…`. Returns `.notACommand` for anything we
     /// don't recognize (so it sends as normal text).
@@ -336,6 +348,9 @@ struct ChannelView: View {
         case "/bets", "/bet":
             return .openBetPicker(arg)
 
+        case "/poll", "/polls":
+            return .openPollComposer
+
         default:
             return .notACommand
         }
@@ -356,6 +371,20 @@ struct ChannelView: View {
         if let s = game.sportKey { fields["sportKey"] = .string(s) }
         if let t = game.commenceTime { fields["commenceTime"] = .string(t) }
         _ = await vm.send(body: "🎲 \(game.matchup)", imageUrl: nil, kind: "bet", data: .object(fields))
+    }
+
+    /// Build + send a poll. Option ids are positional ("0","1",…) and stable.
+    private func sendPoll(question: String, multi: Bool, options: [String]) async {
+        let opts: [JSONValue] = options.enumerated().map { i, t in
+            .object(["id": .string(String(i)), "text": .string(t)])
+        }
+        let data: JSONValue = .object([
+            "question": .string(question),
+            "multi": .bool(multi),
+            "options": .array(opts),
+            "counts": .object([:]),
+        ])
+        _ = await vm.send(body: "📊 \(question)", imageUrl: nil, kind: "poll", data: data)
     }
 }
 
@@ -432,6 +461,7 @@ final class ChannelModel: ObservableObject {
                 messages[idx].body = r.body
                 messages[idx].starCount = r.starCount
                 messages[idx].editedAt = r.editedAt
+                messages[idx].data = r.data   // live poll counts ride the UPDATE
             }
         case .reactionChange:
             break // star_count arrives via the message UPDATE above
@@ -485,7 +515,7 @@ final class ChannelModel: ObservableObject {
             author: author ?? ChatAuthor(id: r.userId, username: "unknown", avatarUrl: nil, level: 0, roleColor: "#9aa0a6"),
             body: r.body, imageUrl: r.imageUrl, replyToId: r.replyToId, starCount: r.starCount,
             reactions: [], mine: false, createdAt: r.createdAt, editedAt: r.editedAt,
-            kind: r.kind, data: r.data)
+            kind: r.kind, data: r.data, myPollVotes: nil)
         if !messages.contains(where: { $0.id == msg.id }) {
             messages.append(msg)
             try? await api?.markChatRead(channelId: channelId, messageId: msg.id) // viewing → caught up
@@ -511,6 +541,19 @@ final class ChannelModel: ObservableObject {
         if count > 0 { reactions.append(ChatReactionSummary(emoji: emoji, count: count, mine: on)) }
         withAnimation(Anim.playful) { messages[idx].reactions = reactions }
         if emoji == "⭐" { messages[idx].starCount = count }
+    }
+
+    /// Toggle the viewer's vote on a poll option, then apply the returned counts +
+    /// selections locally (the message UPDATE broadcast also carries the counts).
+    func votePoll(_ message: ChatMessage, optionId: String) async {
+        guard let api, let idx = messages.firstIndex(where: { $0.id == message.id }) else { return }
+        let on = !messages[idx].pollVotes.contains(optionId)
+        guard let result = try? await api.votePoll(messageId: message.id, optionId: optionId, on: on) else { return }
+        let countsJSON = JSONValue.object(result.counts.mapValues { .number(Double($0)) })
+        withAnimation(Anim.snappy) {
+            messages[idx].data = (messages[idx].data ?? .object([:])).setting("counts", countsJSON)
+            messages[idx].myPollVotes = result.mine
+        }
     }
 
     func edit(_ message: ChatMessage, body: String) async {

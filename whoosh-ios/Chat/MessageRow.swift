@@ -7,6 +7,7 @@ struct MessageRow: View {
     let message: ChatMessage
     var showsHeader: Bool = true
     var onReact: (String) -> Void
+    var onVote: (String) -> Void = { _ in }
     var canEdit: Bool = false
     var onEdit: () -> Void = {}
     var canDelete: Bool = false
@@ -84,6 +85,7 @@ struct MessageRow: View {
         case "spoiler": SpoilerCard(message: message)
         case "stock": StockCard(message: message)
         case "bet": BetCard(message: message)
+        case "poll": PollCard(message: message, onVote: onVote)
         default: defaultContent
         }
     }

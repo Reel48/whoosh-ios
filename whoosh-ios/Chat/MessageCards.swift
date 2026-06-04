@@ -75,6 +75,71 @@ struct StockCard: View {
     }
 }
 
+/// `/poll` — an interactive poll. Each option shows a tappable row with a vote
+/// bar + count; the viewer's picks are highlighted. Single- or multi-select per
+/// the poll's `multi` flag. Counts come from `data.counts` (kept live by the
+/// message UPDATE broadcast); the viewer's picks from `myPollVotes`.
+struct PollCard: View {
+    let message: ChatMessage
+    var onVote: (String) -> Void
+
+    private struct Option: Identifiable { let id: String; let text: String }
+
+    private var question: String { message.data?["question"]?.stringValue ?? "Poll" }
+    private var multi: Bool { message.data?["multi"]?.boolValue ?? false }
+    private var options: [Option] {
+        (message.data?["options"]?.arrayValue ?? []).compactMap { o in
+            guard let id = o["id"]?.stringValue, let t = o["text"]?.stringValue else { return nil }
+            return Option(id: id, text: t)
+        }
+    }
+    private func count(_ id: String) -> Int { message.data?["counts"]?[id]?.intValue ?? 0 }
+    private var total: Int { options.reduce(0) { $0 + count($1.id) } }
+    private func mine(_ id: String) -> Bool { message.pollVotes.contains(id) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "chart.bar.fill").font(.caption).foregroundStyle(Color.brandBlue)
+                Text(question).font(.subheadline.weight(.bold))
+            }
+            ForEach(options) { opt in
+                let n = count(opt.id)
+                let frac = total > 0 ? Double(n) / Double(total) : 0
+                Button { Haptics.tap(); onVote(opt.id) } label: {
+                    ZStack(alignment: .leading) {
+                        GeometryReader { geo in
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(mine(opt.id) ? Color.brandBlue.opacity(0.25) : Color(.tertiarySystemBackground))
+                                .frame(width: max(geo.size.width * frac, 0))
+                                .frame(maxHeight: .infinity)
+                        }
+                        HStack {
+                            if mine(opt.id) {
+                                Image(systemName: "checkmark.circle.fill").font(.caption).foregroundStyle(Color.brandBlue)
+                            }
+                            Text(opt.text).font(.subheadline).foregroundStyle(.primary)
+                            Spacer()
+                            Text("\(n)").font(.caption.weight(.semibold).monospacedDigit()).foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 8)
+                    }
+                    .frame(minHeight: 36)
+                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(.separator), lineWidth: 0.5))
+                }
+                .buttonStyle(.plain)
+            }
+            Text("\(total) vote\(total == 1 ? "" : "s")\(multi ? " · pick any" : "")")
+                .font(.caption2).foregroundStyle(.tertiary)
+        }
+        .padding(12)
+        .frame(maxWidth: 300, alignment: .leading)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(.separator), lineWidth: 0.5))
+    }
+}
+
 /// `/bets` — a shared game with a couple of moneyline odds. Tapping deep-links
 /// to the Bet page (switches to the Capital tab and focuses the game).
 struct BetCard: View {
