@@ -13,6 +13,8 @@ struct PoolDetailView: View {
     @State private var loaded = false
     @State private var busy = false
     @State private var error: String?
+    @State private var chat: ChatChannel?
+    @State private var openingChat = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -34,6 +36,13 @@ struct PoolDetailView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     .buttonStyle(.plain)
+                    Button { Task { await openChat() } } label: {
+                        Label(openingChat ? "Opening…" : "Pool chat", systemImage: "bubble.left.and.bubble.right.fill")
+                            .frame(maxWidth: .infinity).padding()
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(.plain).disabled(openingChat)
                 } else {
                     Text("Join this pool to play.").font(.subheadline).foregroundStyle(.secondary)
                     Button { Task { await join(p) } } label: {
@@ -61,7 +70,16 @@ struct PoolDetailView: View {
         .padding(.horizontal, 24)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $chat) { ChannelView(channel: $0) }
         .task { if !loaded { await load() } }
+    }
+
+    private func openChat() async {
+        openingChat = true; defer { openingChat = false }
+        do { chat = try await model.api.openPoolChat(poolId: poolId) }
+        catch let e as APIError {
+            self.error = e.code == "forbidden" ? "Chat is for members of this pool." : e.message
+        } catch { self.error = "Couldn't open chat." }
     }
 
     private func summary(_ p: PoolDetail) -> String {
