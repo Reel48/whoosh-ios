@@ -7,10 +7,6 @@ struct ChatHomeView: View {
     @State private var overview: ChatOverview?
     @State private var loaded = false
     @State private var error: String?
-    // Profile stats fetched alongside the overview (kept off the chat overview
-    // call so the channel list loads fast).
-    @State private var wbCents: Int?
-    @State private var fantasyRank: Int?
     @State private var path = NavigationPath()
     /// Clears a channel's unread badge locally when opened, ahead of the next load.
     @State private var readOverride: [Int: Int] = [:]
@@ -69,21 +65,17 @@ struct ChatHomeView: View {
     // MARK: Header + routing
 
     private var header: some View {
-        HStack(spacing: 8) {
-            Text("Whoosh Chat").font(.largeTitle.weight(.bold))
+        HStack {
+            Image("WhooshWordmark")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(height: 26)
+                .foregroundStyle(.primary)
+                .accessibilityLabel("Whoosh")
             Spacer()
-            NavigationLink(value: ChatRoute.search) {
-                Image(systemName: "magnifyingglass").font(.title3)
-            }
-            NavigationLink(value: ChatRoute.dms) {
-                Image(systemName: "paperplane").font(.title3)
-            }
-            NavigationLink(value: ChatRoute.notifications) {
-                NotificationBell(store: model.notifications)
-            }
         }
-        .tint(.primary)
-        .padding(.horizontal).padding(.top, 8).padding(.bottom, 6)
+        .padding(.horizontal).padding(.top, 10).padding(.bottom, 6)
     }
 
     @ViewBuilder
@@ -134,11 +126,11 @@ struct ChatHomeView: View {
                 LevelBadge(level: me.level, color: roleColor)
             }
 
-            // Profile stats
+            // Quick actions — search, DMs, notifications (moved off the header).
             HStack(spacing: 10) {
-                statTile(title: "Whoosh Bucks", value: wbCents.map { Money.wb($0) } ?? "—", systemImage: "bolt.fill")
-                statTile(title: "Chat Rank", value: "#\(me.rank)", systemImage: "bubble.left.fill")
-                statTile(title: "Fantasy", value: fantasyRank.map { "#\($0)" } ?? "—", systemImage: "football.fill")
+                actionTile(.search, "Search") { Image(systemName: "magnifyingglass") }
+                actionTile(.dms, "Messages") { Image(systemName: "paperplane.fill") }
+                actionTile(.notifications, "Alerts") { NotificationBell(store: model.notifications) }
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -155,17 +147,21 @@ struct ChatHomeView: View {
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 18))
     }
 
-    private func statTile(title: String, value: String, systemImage: String) -> some View {
-        VStack(spacing: 3) {
-            Label(value, systemImage: systemImage)
-                .labelStyle(.titleAndIcon)
-                .font(.footnote.weight(.bold))
-                .lineLimit(1).minimumScaleFactor(0.7)
-            Text(title).font(.system(size: 9, weight: .semibold)).foregroundStyle(.secondary)
+    /// A tappable hero tile that routes into search / DMs / notifications.
+    private func actionTile<Icon: View>(
+        _ route: ChatRoute, _ label: String, @ViewBuilder icon: () -> Icon,
+    ) -> some View {
+        NavigationLink(value: route) {
+            VStack(spacing: 5) {
+                icon().font(.title3).frame(height: 22)
+                Text(label).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+        .buttonStyle(.plain)
+        .tint(.primary)
     }
 
     // MARK: Channel row
@@ -214,20 +210,6 @@ struct ChatHomeView: View {
         catch let e as APIError { error = e.message }
         catch { self.error = error.localizedDescription }
         loaded = true
-        await loadStats()
-    }
-
-    /// Profile stats for the hero — fetched separately so they never slow the
-    /// channel list. Whoosh Bucks from the wallet; Fantasy rank from the
-    /// cross-league board matched to the viewer's linked Sleeper account.
-    private func loadStats() async {
-        if let dash = try? await model.api.wallet() {
-            wbCents = dash.allocation.totalEquityCents
-        }
-        if let fantasy = try? await model.api.fantasyOverview(),
-           let me = fantasy.link?.sleeperUserId {
-            fantasyRank = fantasy.board.rows.first(where: { $0.ownerId == me })?.rank
-        }
     }
 }
 
