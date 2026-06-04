@@ -12,8 +12,6 @@ struct whoosh_iosApp: App {
     @StateObject private var model = AppModel()
     @UIApplicationDelegateAdaptor(PushAppDelegate.self) private var appDelegate
 
-    init() { ClarikaFont.registerAll() }
-
     var body: some Scene {
         WindowGroup {
             RootView()

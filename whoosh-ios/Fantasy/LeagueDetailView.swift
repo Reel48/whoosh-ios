@@ -72,13 +72,13 @@ struct LeagueDetailView: View {
                     Text("\(i + 1)").font(.caption.monospacedDigit()).foregroundStyle(.secondary).frame(width: 20)
                     TeamAvatar(url: row.avatarUrl, name: row.teamName, size: 32)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(row.teamName).font(.ck(.body, .medium)).lineLimit(1)
-                        Text(row.ownerName).font(.ck(.caption2)).foregroundStyle(.secondary).lineLimit(1)
+                        Text(row.teamName).font(.body.weight(.medium)).lineLimit(1)
+                        Text(row.ownerName).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 1) {
-                        Text(row.record).font(.ck(.callout, .semibold))
-                        Text("\(row.pointsFor, specifier: "%.1f") PF").font(.ck(.caption2)).foregroundStyle(.secondary)
+                        Text(row.record).font(.callout.weight(.semibold))
+                        Text("\(row.pointsFor, specifier: "%.1f") PF").font(.caption2).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -87,13 +87,13 @@ struct LeagueDetailView: View {
 
     @ViewBuilder private var matchupsList: some View {
         if matchups.isEmpty {
-            Text("No matchups this week.").font(.ck(.footnote)).foregroundStyle(.secondary)
+            Text("No matchups this week.").font(.footnote).foregroundStyle(.secondary)
         }
         ForEach(matchups) { m in
             VStack(spacing: 6) {
                 teamRow(m.home)
                 if let away = m.away { teamRow(away) }
-                else { Text("BYE").font(.ck(.caption)).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading) }
+                else { Text("BYE").font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading) }
             }
             .padding(.vertical, 4)
         }
@@ -102,7 +102,7 @@ struct LeagueDetailView: View {
     private func teamRow(_ t: MatchupTeam) -> some View {
         HStack(spacing: 10) {
             TeamAvatar(url: t.avatarUrl, name: t.teamName, size: 28)
-            Text(t.teamName).font(.ck(.callout, t.isMine ? .bold : .regular)).lineLimit(1)
+            Text(t.teamName).font(.callout.weight(t.isMine ? .bold : .regular)).lineLimit(1)
                 .foregroundStyle(t.isMine ? Color.whooshGreen : .primary)
             Spacer()
             Text("\(t.points, specifier: "%.1f")").font(.callout.monospacedDigit().weight(.semibold))

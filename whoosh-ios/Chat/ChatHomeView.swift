@@ -31,7 +31,7 @@ struct ChatHomeView: View {
 
                                 ForEach(overview.categories) { category in
                                     Text(category.name)
-                                        .font(.ck(.caption, .bold))
+                                        .font(.caption.weight(.bold))
                                         .foregroundStyle(.secondary)
                                         .textCase(.uppercase)
                                         .kerning(0.6)
@@ -70,13 +70,13 @@ struct ChatHomeView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Text("Whoosh Chat").font(.ck(.largeTitle, .bold))
+            Text("Whoosh Chat").font(.largeTitle.weight(.bold))
             Spacer()
             NavigationLink(value: ChatRoute.search) {
-                Image(systemName: "magnifyingglass").font(.ck(.title3))
+                Image(systemName: "magnifyingglass").font(.title3)
             }
             NavigationLink(value: ChatRoute.dms) {
-                Image(systemName: "paperplane").font(.ck(.title3))
+                Image(systemName: "paperplane").font(.title3)
             }
             NavigationLink(value: ChatRoute.notifications) {
                 NotificationBell(store: model.notifications)
@@ -122,9 +122,9 @@ struct ChatHomeView: View {
             HStack(spacing: 12) {
                 ChatAvatar(url: me.avatarUrl, size: 52)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("@\(model.currentUsername)").font(.ck(.headline))
+                    Text("@\(model.currentUsername)").font(.headline)
                     if let role = topRole {
-                        Text(role.name).font(.ck(.caption2, .bold))
+                        Text(role.name).font(.caption2.weight(.bold))
                             .foregroundStyle(Color.whooshInk)
                             .padding(.horizontal, 8).padding(.vertical, 2)
                             .background(Color(hex: role.color), in: Capsule())
@@ -148,7 +148,7 @@ struct ChatHomeView: View {
                     Spacer()
                     Text("\(me.xp) XP · next lvl \(me.level + 1)")
                 }
-                .font(.ck(.caption2)).foregroundStyle(.secondary)
+                .font(.caption2).foregroundStyle(.secondary)
             }
         }
         .padding(16)
@@ -159,7 +159,7 @@ struct ChatHomeView: View {
         VStack(spacing: 3) {
             Label(value, systemImage: systemImage)
                 .labelStyle(.titleAndIcon)
-                .font(.ck(.footnote, .bold))
+                .font(.footnote.weight(.bold))
                 .lineLimit(1).minimumScaleFactor(0.7)
             Text(title).font(.system(size: 9, weight: .semibold)).foregroundStyle(.secondary)
         }
@@ -180,9 +180,9 @@ struct ChatHomeView: View {
                 .frame(width: 34, height: 34)
                 .background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 9))
             VStack(alignment: .leading, spacing: 1) {
-                Text(c.name).font(.ck(.body, unread > 0 ? .semibold : .medium)).foregroundStyle(.primary)
+                Text(c.name).font(.body.weight(unread > 0 ? .semibold : .medium)).foregroundStyle(.primary)
                 if let d = c.description, !d.isEmpty {
-                    Text(d).font(.ck(.caption2)).foregroundStyle(.secondary).lineLimit(1)
+                    Text(d).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 }
             }
             Spacer(minLength: 8)
@@ -192,9 +192,9 @@ struct ChatHomeView: View {
                     .background(Color.whooshLime, in: Capsule())
             }
             if c.requiredRoleId != nil {
-                Image(systemName: "lock.fill").font(.ck(.caption2)).foregroundStyle(.tertiary)
+                Image(systemName: "lock.fill").font(.caption2).foregroundStyle(.tertiary)
             }
-            Image(systemName: "chevron.right").font(.ck(.caption, .semibold)).foregroundStyle(.tertiary)
+            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
         }
         .padding(.horizontal, 14).padding(.vertical, 12)
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))

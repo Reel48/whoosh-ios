@@ -40,13 +40,13 @@ struct DMListView: View {
         HStack(spacing: 12) {
             ChatAvatar(url: dm.other.avatarUrl, size: 44)
             VStack(alignment: .leading, spacing: 2) {
-                Text(dm.other.username).font(.ck(.headline))
-                Text(dm.lastBody ?? "Say hello 👋").font(.ck(.subheadline))
+                Text(dm.other.username).font(.headline)
+                Text(dm.lastBody ?? "Say hello 👋").font(.subheadline)
                     .foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer()
             if dm.unread > 0 {
-                Text("\(dm.unread)").font(.ck(.caption2, .bold)).foregroundStyle(Color.whooshInk)
+                Text("\(dm.unread)").font(.caption2.weight(.bold)).foregroundStyle(Color.whooshInk)
                     .padding(.horizontal, 7).padding(.vertical, 2)
                     .background(Color.whooshLime, in: Capsule())
             }

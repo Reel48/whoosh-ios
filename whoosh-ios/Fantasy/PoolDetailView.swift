@@ -34,14 +34,14 @@ struct PoolDetailView: View {
             HStack(spacing: 12) {
                 TeamAvatar(url: p.logoUrl, name: p.displayName, size: 32)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(p.displayName).font(.ck(.subheadline, .bold)).lineLimit(1)
-                    Text(summary(p)).font(.ck(.caption2)).foregroundStyle(.secondary).lineLimit(1)
+                    Text(p.displayName).font(.subheadline.weight(.bold)).lineLimit(1)
+                    Text(summary(p)).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer(minLength: 8)
                 if p.sleeperOpenURL != nil {
                     Button { if let url = p.sleeperOpenURL { openURL(url) } } label: {
                         Label("Open in Sleeper", systemImage: "arrow.up.forward.app.fill")
-                            .font(.ck(.caption, .semibold))
+                            .font(.caption.weight(.semibold))
                             .padding(.horizontal, 12).padding(.vertical, 8)
                             .background(Color.brandBlue, in: Capsule())
                             .foregroundStyle(Color.white)
@@ -69,10 +69,10 @@ struct PoolDetailView: View {
             if let p = pool {
                 TeamAvatar(url: p.logoUrl, name: p.displayName, size: 88).padding(.top, 24)
                 VStack(spacing: 4) {
-                    Text(p.displayName).font(.ck(.title2, .bold)).multilineTextAlignment(.center)
-                    Text(summary(p)).font(.ck(.subheadline)).foregroundStyle(.secondary)
+                    Text(p.displayName).font(.title2.weight(.bold)).multilineTextAlignment(.center)
+                    Text(summary(p)).font(.subheadline).foregroundStyle(.secondary)
                 }
-                Text("Join this pool to play.").font(.ck(.subheadline)).foregroundStyle(.secondary)
+                Text("Join this pool to play.").font(.subheadline).foregroundStyle(.secondary)
                 Button { Task { await join(p) } } label: {
                     Group {
                         if busy { ProgressView() } else { Text(joinLabel(p)).bold() }
@@ -83,8 +83,8 @@ struct PoolDetailView: View {
                 }
                 .buttonStyle(.plain).disabled(busy)
                 Text("Opens secure checkout in your browser.")
-                    .font(.ck(.caption2)).foregroundStyle(.tertiary)
-                if let error { Text(error).foregroundStyle(.bad).font(.ck(.footnote)) }
+                    .font(.caption2).foregroundStyle(.tertiary)
+                if let error { Text(error).foregroundStyle(.bad).font(.footnote) }
             } else if loaded {
                 ContentUnavailableView("Pool unavailable", systemImage: "person.3")
             } else {
